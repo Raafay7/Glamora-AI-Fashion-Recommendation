@@ -134,60 +134,31 @@ def add_to_cart(request, uid):
 
 @login_required
 def cart(request):
-    cart_obj = None
-    payment = None
     user = request.user
+    cart_obj = Cart.objects.filter(is_paid=False, user=user).first()
 
-    try:
-        cart_obj = Cart.objects.get(is_paid=False, user=user)
-
-    except Exception as e:
-        messages.warning(request, "Your cart is empty. Please add a product to cart.", str(e))
+    if not cart_obj:
+        messages.warning(request, "Your cart is empty. Please add a product to the cart.")
         return redirect(reverse('index'))
 
     if request.method == 'POST':
-        coupon = request.POST.get('coupon')
-        coupon_obj = Coupon.objects.filter(coupon_code__exact=coupon).first()
+        coupon_code = request.POST.get('coupon')
+        coupon_obj = Coupon.objects.filter(coupon_code__exact=coupon_code, is_expired=False).first()
 
         if not coupon_obj:
-            messages.warning(request, 'Invalid coupon code.')
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
-        if cart_obj and cart_obj.coupon:
-            messages.warning(request, 'Coupon already exists.')
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
-        if coupon_obj and coupon_obj.is_expired:
-            messages.warning(request, 'Coupon code expired.')
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
-        if cart_obj and coupon_obj and cart_obj.get_cart_total() < coupon_obj.minimum_amount:
-            messages.warning(
-                request, f'Amount should be greater than {coupon_obj.minimum_amount}')
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
-        if cart_obj and coupon_obj:
+            messages.warning(request, 'Invalid or expired coupon code.')
+        elif cart_obj.coupon:
+            messages.warning(request, 'A coupon is already applied.')
+        elif cart_obj.get_cart_total() < coupon_obj.minimum_amount:
+            messages.warning(request, f'Cart total must be at least {coupon_obj.minimum_amount} to use this coupon.')
+        else:
             cart_obj.coupon = coupon_obj
             cart_obj.save()
             messages.success(request, 'Coupon applied successfully.')
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
-    if cart_obj:
-        cart_total_in_paise = int(cart_obj.get_cart_total_price_after_coupon() * 100)
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('cart')))
 
-        if cart_total_in_paise < 100:
-            messages.warning(
-                request, 'Total amount in cart is less than the minimum required amount (1.00 INR). Please add a product to the cart.')
-            return redirect('index')
-
-        client = razorpay.Client(
-            auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_SECRET_KEY))
-        payment = client.order.create(
-            {'amount': cart_total_in_paise, 'currency': 'INR', 'payment_capture': 1})
-        cart_obj.razorpay_order_id = payment['id']
-        cart_obj.save()
-
-    context = {'cart': cart_obj, 'payment': payment, 'quantity_range': range(1, 6), }
+    context = {'cart': cart_obj, 'quantity_range': range(1, 6)}
     return render(request, 'accounts/cart.html', context)
 
 

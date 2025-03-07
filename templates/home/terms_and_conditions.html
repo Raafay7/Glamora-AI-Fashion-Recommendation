@@ -1,58 +1,86 @@
 {% extends "base/base.html" %} 
 {% block title %}Terms and Conditions{% endblock %}
-{% load static %} {% block start %}
+{% load static %} 
+{% block start %}
 
 <style>
-    .para-text{
-        font-size: 20px;
+    .section-content {
+        background-color: #FAFAFA;
+        padding: 50px 0;
+    }
+    .para-text {
+        font-size: 18px;
         font-family: "Gill Sans", sans-serif;
-        padding-bottom: 30px;
         text-align: justify;
+        color: #333;
+        line-height: 1.8;
+    }
+    .terms-container {
+        max-width: 80rem;
+        margin: auto;
+        padding: 30px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .terms-title {
+        color: #D81B60;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .terms-heading {
+        font-size: 22px;
+        font-weight: bold;
+        color: #333;
+        margin-top: 20px;
+    }
+    .contact-link {
+        color: #D81B60;
+        font-weight: bold;
+        text-decoration: none;
+        transition: color 0.3s ease-in-out;
+    }
+    .contact-link:hover {
+        color: #A31545;
+        text-decoration: underline;
     }
 </style>
 
-<section class="section-content padding-bottom">
-    <div class="mx-auto" style="max-width: 85rem; margin-top: 30px">
-        <div class="container my-5">
-            <h2 class="text-center mb-4">Terms and Conditions</h2>
-            
-            <div class="card p-4">
-                <h4 class="text-left mb-2">1. Introduction</h4>
-                <p class="para-text">
-                These terms and conditions outline the rules and regulations for the use
-                of our website. By accessing this website we assume you accept these terms
-                and conditions. Do not continue to use this website if you do not agree
-                to take all of the terms and conditions stated on this page.
-                </p>
+<section class="section-content">
+    <div class="terms-container">
+        <h2 class="terms-title">Terms and Conditions</h2>
 
-                <h4 class="text-left mb-2">2. Cookies</h4>
-                <p class="para-text">
-                We employ the use of cookies. By accessing this website, you agreed to
-                use cookies in agreement with this website Privacy Policy.
-                </p>
+        <h4 class="terms-heading">1. Introduction</h4>
+        <p class="para-text">
+            These terms and conditions outline the rules and regulations for the use of our website. 
+            By accessing this website, we assume you accept these terms and conditions. 
+            Do not continue to use this website if you do not agree to the terms stated on this page.
+        </p>
 
-                <h4 class="text-left mb-2">3. License</h4>
-                <p class="para-text">
-                Unless otherwise stated, this website and/or its licensors own the
-                intellectual property rights for all material on this website. All
-                intellectual property rights are reserved. You may access this from
-                djangoecommerwebsite for your own personal use subjected to restrictions set in
-                these terms and conditions.
-                </p>
+        <h4 class="terms-heading">2. Cookies</h4>
+        <p class="para-text">
+            We use cookies to enhance user experience. By accessing this website, you agree to our 
+            use of cookies in accordance with our Privacy Policy.
+        </p>
 
-                <h4 class="text-left mb-2">4. User Comments</h4>
-                <p class="para-text">
-                Certain parts of this website offer the opportunity for users to post and
-                exchange opinions and information in certain areas of the website.
-                This website does not filter, edit, publish or review Comments prior to
-                their presence on the website.
-                </p>
+        <h4 class="terms-heading">3. License</h4>
+        <p class="para-text">
+            Unless otherwise stated, this website and/or its licensors own the intellectual property rights 
+            for all material on this website. You may access this website for personal use, subject to 
+            restrictions set in these terms.
+        </p>
 
-                <p class="para-text">If you have any questions or concerns about these Terms, please <a href="{% url 'contact' %}">contact us.</a></p>
+        <h4 class="terms-heading">4. User Comments</h4>
+        <p class="para-text">
+            Certain areas of this website allow users to post comments and share opinions. We do not filter, 
+            edit, publish, or review user comments before they appear on the site.
+        </p>
 
-                <!-- Add more sections as needed -->
-            </div>
-        </div>
+        <p class="para-text">
+            If you have any questions or concerns about these Terms, please 
+            <a href="{% url 'contact' %}" class="contact-link">contact us</a>.
+        </p>
     </div>
 </section>
 
