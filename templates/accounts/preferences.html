@@ -1,7 +1,6 @@
 {% extends "base/base.html" %}
-{% block title %}Shipping Address{% endblock title %}
+{% block title %}Preferences{% endblock title %}
 {% load crispy_forms_tags %}
-{% load static %}
 {% block start %}
 
 <style>
@@ -57,44 +56,45 @@
     {% include "base/alert.html" %}
     <nav class="nav nav-borders">
       <a class="nav-link ms-0" href="{% url 'profile' username=user.username %}">Profile</a>
-      <a class="nav-link ms-0" href="{% url 'preferences' %}">Preferences</a>
-      <a class="nav-link active ms-0" href="{% url 'shipping-address' %}">Address</a>
+      <a class="nav-link active ms-0" href="{% url 'preferences' %}">Preferences</a>
+      <a class="nav-link ms-0" href="{% url 'shipping-address' %}">Address</a>
       <a class="nav-link ms-0" href="{% url 'change_password' %}">Security</a>
     </nav>
 
     <hr class="mt-0 mb-4" />
-    <!--Change Password Detail Section -->
     <div class="row">
       <div class="col-xl-20">
         <div class="card mb-4">
-          <div class="card-header">Shipping Address</div>
+          <div class="card-header">Preferences</div>
           <div class="card-body">
 
             <form method="POST">
               {% csrf_token %}
               <div class="form-row">
-                <div class="form-group col-md-6">{{ form.first_name|as_crispy_field }}</div>
-                <div class="form-group col-md-6">{{ form.last_name|as_crispy_field }}</div>
+                <div class="form-group col-md-7">{{ form.clothing_types|as_crispy_field }}</div>
+                <div class="form-group col-md-5">{{ form.height|as_crispy_field }}</div>
               </div>
               
               <div class="form-row">
-                <div class="form-group col-md-8">{{ form.street|as_crispy_field }}</div>
-                <div class="form-group col-md-4">
-                  {{ form.street_number|as_crispy_field }}
-                </div>
+                <div class="form-group col-md-7">{{ form.body_shape|as_crispy_field }}</div>
+                <div class="form-group col-md-5">{{ form.hair_color|as_crispy_field }} </div>
               </div>
               
               <div class="form-row">
-                <div class="form-group col-md-8">{{ form.city|as_crispy_field }}</div>
-                <div class="form-group col-md-4">{{ form.zip_code|as_crispy_field }}</div>
+                <div class="form-group col-md-7">{{ form.skin_tone|as_crispy_field }}</div>
+                <div class="form-group col-md-5">{{ form.clothing_size|as_crispy_field }}</div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group col-md-7">{{ form.budget_range|as_crispy_field }}</div>
+                <div class="form-group col-md-5">{{ form.favorite_brands|as_crispy_field }}</div>
               </div>
               
-              {{ form.country|as_crispy_field }} {{ form.phone|as_crispy_field }}
 
               <div class="form-group d-flex justify-content-end">
                 <div class="d-sm-flex">
                   <a class="mb-2 mb-sm-0 mr-0 mr-sm-3 btn btn-warning" href="{% url 'index' %}">Back to Home Page</a>
-                  <button class="btn btn-primary" type="submit">Update Shipping Address</button>
+                  <button class="btn btn-primary" type="submit">Update Preferences</button>
                 </div>
               </div>
               

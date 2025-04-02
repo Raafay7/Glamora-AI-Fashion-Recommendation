@@ -1,64 +1,85 @@
 {% extends "base/base.html" %}
 {% block title %}Privacy Policy{% endblock %}
+{% load static %}
 {% block start %}
 
 <style>
+  .section-content {
+      background-color: #FAFAFA;
+      padding: 50px 0;
+  }
   .para-text {
-    font-size: 20px;
-    font-family: "Gill Sans", sans-serif;
-    padding-bottom: 30px;
-    text-align: justify;
+      font-size: 18px;
+      font-family: "Gill Sans", sans-serif;
+      text-align: justify;
+      color: #444;
+      line-height: 1.8;
+  }
+  .policy-container {
+      max-width: 80rem;
+      margin: auto;
+      padding: 30px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  .policy-title {
+      color: #126be8;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 20px;
+  }
+  .policy-heading {
+      font-size: 22px;
+      font-weight: bold;
+      color: #333;
+      margin-top: 20px;
+  }
+  .contact-link {
+      color: #126be8;
+      font-weight: bold;
+      text-decoration: none;
+      transition: color 0.3s ease-in-out;
+  }
+  .contact-link:hover {
+      color: #126be8;
+      text-decoration: underline;
   }
 </style>
 
-<section class="section-content padding-bottom">
-  <div class="mx-auto" style="max-width: 85rem; margin-top: 30px">
-    <div class="container my-5">
-      <h2 class="text-center mb-4">Privacy Policy</h2>
+<section class="section-content">
+    <div class="policy-container">
+        <h2 class="policy-title">Privacy Policy</h2>
 
-      <div class="card p-4">
-        <h4 class="text-left mb-2">1. Introduction</h4>
+        <h4 class="policy-heading">1. Introduction</h4>
         <p class="para-text">
-          We value your privacy and are committed to protecting your personal
-          information. This privacy policy outlines the types of information we
-          collect and how we use, disclose, and protect that information..
+            We value your privacy and are committed to protecting your personal information. 
+            This policy outlines the types of data we collect and how we use, disclose, and protect that information.
         </p>
 
-        <h4 class="text-left mb-2">2. Information We Collect</h4>
+        <h4 class="policy-heading">2. Information We Collect</h4>
         <p class="para-text">
-          We collect various types of information, including information that
-          identifies or may identify you as anindividual ("Personal
-          Information"). This includes your name, email address, billing and
-          shipping addresses, and payment information.
+            We collect personal details such as your name, email, billing and shipping addresses, and payment details.
+            Additionally, we gather information when you use social logins like Google or Facebook.
         </p>
 
-        <h4 class="text-left mb-2">3. Third-Party Integration</h4>
+        <h4 class="policy-heading">3. Third-Party Integration</h4>
         <p class="para-text">
-          When registering through Google or Facebook, we may collect and store
-          additional information provided by these platforms to enhance your
-          user experience or enable specific features. We handle this
-          information in accordance with their respective privacy policies and
-          take appropriate measures to protect your personal information.
+            If you sign up using Google or Facebook, we may store additional data provided by these platforms to enhance your experience. 
+            Your data is handled securely and in accordance with their privacy policies.
         </p>
 
-        <h4 class="text-left mb-2">4. Sharing Your Information</h4>
+        <h4 class="policy-heading">4. Sharing Your Information</h4>
         <p class="para-text">
-          We do not share your personal information with third parties except as
-          described in this policy. We may disclose your information to our
-          service providers who help us operate our services, but only to the
-          extent necessary to perform their functions.
+            We do not sell your data. However, we may share necessary information with trusted service providers 
+            to ensure the smooth operation of our services.
         </p>
 
-        <h4 class="text-left mb-2">Contact Us</h4>
         <p class="para-text">
-          If you have any questions, concerns, or requests regarding this
-          Privacy Policy or the handling of your personal information, please
-          contact us through the contact information provided on our website.
+            If you have any concerns about your privacy, please 
+            <a href="{% url 'contact' %}" class="contact-link">contact us</a>.
         </p>
-
-        <!-- Add more sections as needed -->
-      </div>
     </div>
-  </div>
 </section>
+
 {% endblock %}

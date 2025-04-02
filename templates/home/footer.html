@@ -1,4 +1,6 @@
-{% load static %} {% block start %}
+{% load static %} 
+{% load tz %}
+{% block start %}
 
 <footer class="footer">
   <a href="#" class="scroll-top">
@@ -9,22 +11,22 @@
       <div class="inner-content">
         <div class="row">
           <div class="col-lg-3 col-md-4 col-12 mb-2">
-            <div class="footer-logo text-center">
+            <div class="footer-logo text-center text-md-left">
               <a href="/">
-                <img src="{% static 'images/logo-white.png' %}" alt="Logo" class="mx-2"/>
+                <img src="{% static 'images/logo1.png' %}" alt="Logo" class="mx-2" style="max-width: 140px; min-height: 60px;"/>
               </a>
             </div>
           </div>
           <div class="col-lg-9 col-md-8 col-12">
             <div class="footer-newsletter">
-              <h4 class="title mb-4">
+              <h4 class="title mb-2 mt-2 font-weight-bold text-uppercase" >
                 Subscribe to our Newsletter
                 <span>Get all the latest information, Sales and Offers.</span>
               </h4>
               <div class="newsletter-form-head">
-                <form class="newsletter-form">
+                <form class="newsletter-form ">
                   <input
-                    class="mb-2"
+                    class="mb-2 mt-2"
                     name="email"
                     placeholder="Email address here..."
                     type="email"
@@ -32,7 +34,7 @@
                     value=""
                     autocomplete="email"
                   />
-                  <div class="button mb-4">
+                  <div class="button mb-2">
                     <button class="btn">
                       Subscribe<span class="dir-part"></span>
                     </button>
@@ -53,11 +55,11 @@
           <div class="col-12">
             <div class="single-footer f-link">
               <ul>
-                <li><a href="{% url 'about' %}">About Us</a></li>
-                <li><a href="{% url 'contact' %}">Contact Us</a></li>
-                <li><a href="{% url 'shipping-address' %}">Delivery</a></li>
-                <li><a href="{% url 'terms-and-conditions' %}">Terms and Conditions</a></li>
-                <li><a href="{% url 'privacy-policy' %}">Privacy Policy</a></li>
+                <li><a class="mr-3" href="{% url 'about' %}">About Us</a></li>
+                <li><a class="mr-3" href="{% url 'contact' %}">Contact Us</a></li>
+                <li><a class="mr-3" href="{% url 'shipping-address' %}">Delivery</a></li>
+                <li><a class="mr-3" href="{% url 'terms-and-conditions' %}">Terms and Conditions</a></li>
+                <li><a class="mr-3" href="{% url 'privacy-policy' %}">Privacy Policy</a></li>
               </ul>
             </div>
           </div>
@@ -70,62 +72,9 @@
     <div class="container">
       <div class="inner-content">
         <div class="row align-items-center">
-          <div class="col-lg-4 col-12">
-            <div class="payment-gateway">
-              <span>We Accept:</span>
-              <img
-                src="{% static 'images/credit-cards-footer.png' %}"
-                alt="#"
-              />
+            <div class="col-12 text-center text-md-right">
+              <span style="color: grey;">&copy; {% now "Y" %} Glamora. All rights reserved.</span>
             </div>
-          </div>
-          <div class="col-lg-4 col-12">
-            <div class="copyright">
-              <p>
-                Designed and Developed by ❤️
-                <a href="https://atulguptag.github.io/" rel="nofollow" target="_blank">
-                  Atul Gupta
-                </a>
-              </p>
-            </div>
-          </div>
-          <div class="col-lg-4 col-12">
-            <ul class="socila">
-              <li><span>Follow Me On:</span></li>
-              <li>
-                <a
-                  href="https://www.linkedin.com/in/atulguptag/"
-                  rel="nofollow"
-                  target="_blank">
-                  <i class="lni lni-linkedin"></i>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://github.com/atulguptag/"
-                  rel="nofollow"
-                  target="_blank">
-                  <i class="lni lni-github"></i>
-              </a>
-              </li>
-              <li>
-                <a
-                  href="https://instagram.com/itsatulguptag/"
-                  rel="nofollow"
-                  target="_blank">
-                  <i class="lni lni-instagram"></i>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://facebook.com/itsatulguptag/"
-                  rel="nofollow"
-                  target="_blank">
-                  <i class="lni lni-facebook-filled"></i>
-                </a>
-              </li>
-            </ul>
-          </div>
         </div>
       </div>
     </div>

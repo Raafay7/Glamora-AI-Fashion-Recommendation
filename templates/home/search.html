@@ -1,43 +1,65 @@
-{% extends "base/base.html"%}
+{% extends "base/base.html" %}
 {% block title %}Search Product{% endblock %}
 {% block start %}
 
 <style>
-  h3{
+  .section-title {
+    font-weight: bold;
+    color: #126be8;
     margin-bottom: 20px;
+  }
+  .para-text {
+    line-height: 2rem;
+    text-align: justify;
+    color: #444;
+  }
+  .img-wrap img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+  }
+  .card-product-grid {
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease-in-out;
+  }
+  .card-product-grid:hover {
+    transform: scale(1.05);
   }
 </style>
 
 <section class="section-content padding-y">
   <div class="container">
     {% if query %}
-    <h3>Showing results for '{{ query }}':</h3>
+      <h3 class="section-title text-center">Showing results for '{{ query }}'</h3>
     {% else %}
-    <h3>No search query entered.</h3>
+      <h3 class="section-title text-center">No search query entered.</h3>
     {% endif %}
 
     <div class="row">
-      {% if products %} {% for product in products %}
-      <div class="col-md-3">
-        <figure class="card card-product-grid">
-          <div class="img-wrap">
-            <img src="/media/{{product.product_images.first.image}}" />
-          </div>
-          <figcaption class="info-wrap border-top">
-            <a href="{% url 'get_product' product.slug %}" class="title">
-              <b>{{ product.product_name }}</b></a>
-            <div class="price mt-2">₹{{ product.price }}.00</div>
-          </figcaption>
-        </figure>
-      </div>
-
-      {% endfor %} {% elif query %}
-      <div class="col-md-12">
-        <p>No products found.</p>
-      </div>
+      {% if products %}
+        {% for product in products %}
+        <div class="col-md-3">
+          <figure class="card card-product-grid">
+            <div class="img-wrap">
+              <img src="/media/{{ product.product_images.first.image }}" alt="{{ product.product_name }}">
+            </div>
+            <figcaption class="info-wrap border-top text-center p-3">
+              <a href="{% url 'get_product' product.slug %}" class="title">
+                <b>{{ product.product_name }}</b>
+              </a>
+              <div class="price mt-2">PKR {{ product.price }}.00</div>
+            </figcaption>
+          </figure>
+        </div>
+        {% endfor %}
+      {% elif query %}
+        <div class="col-md-12 text-center">
+          <p class="para-text">No products found for "{{ query }}". Please try again with a different search term.</p>
+        </div>
       {% endif %}
-
     </div>
   </div>
 </section>
+
 {% endblock %}

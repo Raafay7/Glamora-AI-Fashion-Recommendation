@@ -2,7 +2,6 @@
 {% block title %}Payment Successful!{% endblock %}
 {% block start %}
 
-<!-- ============================ COMPONENT Payment Success ================================= -->
 <section class="section-content padding-bottom">
   <div class="container-xl d-flex justify-content-center align-items-center mt-5">
     <div class="row justify-content-center w-100">
@@ -20,14 +19,17 @@
             <a href="{% url 'index' %}" class="btn btn-primary mt-3 mb-3 mr-3">
               Continue Shopping
             </a>
-            <a href="{% url 'order_details' order_id=order_id %}" class="btn btn-warning">
-              View Order Details
-            </a>
+            {% if order_id %}
+  <a href="{% url 'order_details' order_id=order_id %}" class="btn btn-warning">
+    View Order Details
+  </a>
+{% else %}
+  <p style="color: red;">Order details not available.</p>
+{% endif %}
           </div>
         </div>
       </div>
     </div>
   </div>
 </section>
-<!-- ============================ COMPONENT Payment Success END ================================= -->
 {% endblock %}

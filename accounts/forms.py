@@ -10,6 +10,11 @@ class UserProfileForm(forms.ModelForm):
         model = Profile
         fields = ['profile_image', 'bio']
 
+class UserPreferenceForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ['clothing_types', 'height', 'body_shape', 'skin_tone', 'hair_color', 'clothing_size', 'favorite_brands', 'budget_range']
+
 
 class UserUpdateForm(forms.ModelForm):
     class Meta:

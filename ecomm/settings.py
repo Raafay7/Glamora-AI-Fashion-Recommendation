@@ -148,8 +148,12 @@ WSGI_APPLICATION = 'ecomm.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'glamora',
+        'USER': 'zeeshan',
+        'PASSWORD': 'zeeshan',
+        'HOST': 'localhost',  
+        'PORT': '5432',       
     }
 }
 
@@ -215,8 +219,8 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 EMAIL_USE_SSL = False
 
 # RazorPay API KEYS
-RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID')
-RAZORPAY_SECRET_KEY = config('RAZORPAY_SECRET_KEY')
+STRIPE_PUBLIC_KEY = config('STRIPE_PUBLIC_KEY')
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY')
 
 # Auth Backends Configurations
 AUTHENTICATION_BACKENDS = (

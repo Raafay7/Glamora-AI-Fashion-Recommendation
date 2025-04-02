@@ -9,8 +9,9 @@ urlpatterns = [
     path('logout/', user_logout, name='logout'),
     path('activate/<email_token>/', activate_email_account, name="activate_email"),
 
-    # Profile management urls with profile, change-password, and shipping-address
+    # Profile management urls with profile, preferences, change-password, and shipping-address
     path('profile/<str:username>/', profile_view, name='profile'),
+    path('preferences/', preferences, name='preferences'),
     path('change-password/', change_password, name='change_password'),
     path('shipping-address/', update_shipping_address, name='shipping-address'),
 
@@ -46,4 +47,6 @@ urlpatterns = [
 
     # Delete user account url
     path('delete-account/', delete_account, name='delete_account'),
+    path('style-quiz/', style_quiz_view, name='style_quiz'),
+    path('save-style-quiz/', save_style_quiz, name='save_style_quiz'),
 ]

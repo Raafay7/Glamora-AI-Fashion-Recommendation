@@ -1,0 +1,427 @@
+{% extends "base/base.html" %}
+{% block title %}Style Quiz - Find Your Perfect Look{% endblock %}
+{% block start %} {% load static %}
+
+<div class="quiz-page-container">
+  <div class="quiz-header">
+    <h1>Discover Your Personal Style</h1>
+    <p>Answer these questions to help us recommend clothes that match your style preferences.</p>
+  </div>
+  
+  {% csrf_token %}
+  <div id="style-quiz-container" class="quiz-container">
+    <!-- Progress bar -->
+    <div class="progress-container">
+      <div class="progress-bar" id="quiz-progress"></div>
+      <div class="progress-text">Question <span id="current-question">1</span> of <span id="total-questions">8</span></div>
+    </div>
+  
+    <!-- Question container -->
+    <div id="question-container">
+      <!-- Questions will be dynamically inserted here -->
+    </div>
+  
+    <!-- Navigation buttons -->
+    <div class="quiz-navigation">
+      <button id="prev-btn" class="nav-btn" disabled>Previous</button>
+      <button id="next-btn" class="nav-btn">Next</button>
+      <button id="submit-btn" class="submit-btn" style="display: none;">Submit Preferences</button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Style Quiz Container */
+.quiz-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 30px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Progress Bar */
+.progress-container {
+  margin-bottom: 25px;
+}
+
+.progress-bar {
+  height: 6px;
+  background-color: #6a5acd;
+  border-radius: 10px;
+  width: 12.5%;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 14px;
+  color: #666;
+  margin-top: 8px;
+  text-align: right;
+}
+
+/* Question Styling */
+.question-title {
+  font-size: 22px;
+  margin-bottom: 20px;
+  color: #333;
+  font-weight: 600;
+}
+
+.options-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.option:hover {
+  border-color: #6a5acd;
+  background-color: #f8f7ff;
+}
+
+.option input {
+  margin-right: 12px;
+}
+
+.option label {
+  cursor: pointer;
+  font-size: 16px;
+  flex: 1;
+}
+
+/* Button Styling */
+.quiz-navigation {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.nav-btn, .submit-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.nav-btn {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.submit-btn {
+  background-color: #6a5acd;
+  color: white;
+}
+
+.submit-btn:hover {
+  background-color: #5a4abf;
+}
+
+/* Animation for question transitions */
+.question-slide {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Quiz page container */
+.quiz-page-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.quiz-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.quiz-header h1 {
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.quiz-header p {
+  color: #666;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Quiz questions and options
+  const quizData = [
+    {
+      question: "What types of clothes are you looking for?",
+      options: ["Casual", "Workwear", "Social occasions", "Maternity"],
+      type: "radio"
+    },
+    {
+      question: "How tall are you?",
+      options: ["Under 5'2\" (Petite)", "5'3\" - 5'6\" (Average)", "5'7\" - 5'10\" (Tall)", "Above 5'10\""],
+      type: "radio"
+    },
+    {
+      question: "What is your body shape?",
+      options: ["Hourglass – Waist is the narrowest part of the frame", 
+                "Triangle – Hips are broader than shoulders", 
+                "Rectangle – Hips, shoulders, and waist are the same proportion", 
+                "Oval – Hips and shoulders are narrower than waist"], 
+      type: "radio"
+    },
+    {
+      question: "What is your skin tone?",
+      options: ["Light (Very fair or pale)", 
+                "Wheatish (Fair with warm undertones)", 
+                "Medium Tan (Moderate brown with neutral undertones)", 
+                "Deep Brown (Dark complexion)"],
+      type: "radio"
+    },
+    {
+      question: "What is your hair color?",
+      options: ["Black", "Brown", "Dyed (Blonde, Red, Balayage)", "Other" ],
+      type: "radio"
+    },
+    {
+      question: "What is your usual clothing size in Pakistani brands?",
+      options: ["S", "M", "L", "XL"],
+      type: "radio"
+    },
+    {
+      question: "Do you have any favorite Pakistani fashion brands? (Optional)",
+      options: ["Khaadi", "Gul Ahmed", "Sapphire", "Bonanza Satrangi"],
+      type: "radio"
+    },
+    {
+      question: "What is your usual budget range for clothing?",
+      options: ["Budget (Affordable brands, local markets)", 
+                "Mid-range (High-street brands like Sapphire, Khaadi)", 
+                "Premium (Luxury brands like Élan, Sania Maskatiya)",
+                "It Varies",
+            ],
+                
+      type: "radio"
+    }
+  ];
+
+  // Initialize variables
+  let currentQuestion = 0;
+  const answers = {};
+  const questionContainer = document.getElementById('question-container');
+  const prevBtn = document.getElementById('prev-btn');
+  const nextBtn = document.getElementById('next-btn');
+  const submitBtn = document.getElementById('submit-btn');
+  const quizProgress = document.getElementById('quiz-progress');
+  const currentQuestionSpan = document.getElementById('current-question');
+  const totalQuestionsSpan = document.getElementById('total-questions');
+
+  // Set total questions number
+  totalQuestionsSpan.textContent = quizData.length;
+
+  // Load first question
+  loadQuestion();
+
+  // Add event listeners to buttons
+  prevBtn.addEventListener('click', goToPrevQuestion);
+  nextBtn.addEventListener('click', goToNextQuestion);
+  submitBtn.addEventListener('click', submitQuiz);
+
+  // Function to load a question
+  function loadQuestion() {
+    // Update progress bar
+    updateProgress();
+    
+    // Get current question data
+    const currentQuizData = quizData[currentQuestion];
+    
+    // Create question element
+    const questionElement = document.createElement('div');
+    questionElement.classList.add('question-slide');
+    questionElement.setAttribute('data-question', currentQuestion);
+    
+    // Add question title
+    const questionTitle = document.createElement('h2');
+    questionTitle.classList.add('question-title');
+    questionTitle.textContent = currentQuizData.question;
+    questionElement.appendChild(questionTitle);
+    
+    // Add options
+    const optionsContainer = document.createElement('div');
+    optionsContainer.classList.add('options-container');
+    
+    currentQuizData.options.forEach((option, index) => {
+      const optionContainer = document.createElement('div');
+      optionContainer.classList.add('option');
+      
+      const input = document.createElement('input');
+      input.type = currentQuizData.type;
+      input.id = `q${currentQuestion}-option${index}`;
+      input.name = `question${currentQuestion}`;
+      input.value = option;
+      
+      // Check if this option was previously selected
+      if (currentQuizData.type === 'radio' && answers[currentQuestion] === option) {
+        input.checked = true;
+      } else if (currentQuizData.type === 'checkbox' && 
+                 answers[currentQuestion] && 
+                 answers[currentQuestion].includes(option)) {
+        input.checked = true;
+      }
+      
+      const label = document.createElement('label');
+      label.htmlFor = `q${currentQuestion}-option${index}`;
+      label.textContent = option;
+      
+      optionContainer.appendChild(input);
+      optionContainer.appendChild(label);
+      optionsContainer.appendChild(optionContainer);
+      
+      // Add event listener to save answer when selected
+      input.addEventListener('change', function() {
+        saveAnswer();
+      });
+    });
+    
+    questionElement.appendChild(optionsContainer);
+    
+    // Clear previous question and add new one
+    questionContainer.innerHTML = '';
+    questionContainer.appendChild(questionElement);
+    
+    // Update button states
+    updateButtonStates();
+  }
+
+  // Function to save the current answer
+  function saveAnswer() {
+    const currentQuizData = quizData[currentQuestion];
+    
+    if (currentQuizData.type === 'radio') {
+      const selectedOption = document.querySelector(`input[name="question${currentQuestion}"]:checked`);
+      if (selectedOption) {
+        answers[currentQuestion] = selectedOption.value;
+      }
+    } else if (currentQuizData.type === 'checkbox') {
+      const selectedOptions = document.querySelectorAll(`input[name="question${currentQuestion}"]:checked`);
+      answers[currentQuestion] = Array.from(selectedOptions).map(option => option.value);
+    }
+  }
+
+  // Function to go to the next question
+  function goToNextQuestion() {
+    saveAnswer();
+    currentQuestion++;
+    currentQuestionSpan.textContent = currentQuestion + 1;
+    
+    if (currentQuestion >= quizData.length - 1) {
+      nextBtn.style.display = 'none';
+      submitBtn.style.display = 'block';
+    }
+    
+    loadQuestion();
+  }
+
+  // Function to go to the previous question
+  function goToPrevQuestion() {
+    saveAnswer();
+    currentQuestion--;
+    currentQuestionSpan.textContent = currentQuestion + 1;
+    
+    if (currentQuestion < quizData.length - 1) {
+      nextBtn.style.display = 'block';
+      submitBtn.style.display = 'none';
+    }
+    
+    loadQuestion();
+  }
+
+  // Function to update button states
+  function updateButtonStates() {
+    prevBtn.disabled = currentQuestion === 0;
+    currentQuestionSpan.textContent = currentQuestion + 1;
+  }
+
+  // Function to update progress bar
+  function updateProgress() {
+    const progressPercentage = ((currentQuestion + 1) / quizData.length) * 100;
+    quizProgress.style.width = `${progressPercentage}%`;
+  }
+
+  // Function to submit the quiz
+  function submitQuiz() {
+    saveAnswer();
+    
+    // Prepare data for submission
+    const formData = new FormData();
+    
+    // Add answers to form data
+    for (let i = 0; i < quizData.length; i++) {
+      const question = quizData[i].question;
+      let answer = answers[i];
+      
+      if (Array.isArray(answer)) {
+        answer = answer.join(', ');
+      }
+      
+      formData.append(`question_${i}`, question);
+      formData.append(`answer_${i}`, answer || '');
+    }
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    // Submit data using fetch
+    fetch('/accounts/save-style-quiz/', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrfToken
+      },
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        window.location.href = '/';
+      } else {
+        alert('There was an error saving your preferences. Please try again.');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('There was an error submitting the quiz. Please try again.');
+    });
+  }
+});
+</script>
+{% endblock %}

@@ -1,50 +1,121 @@
-{% extends "base/base.html"%} {% block start %}
+{% extends "base/base.html" %}
+{% load static %}
+{% block start %}
+
 <style>
+  /* General Styles */
   .filter-section {
-      margin-bottom: 20px;
+    margin-bottom: 20px;
   }
 
   .form-group {
-      margin-bottom: 10px;
+    margin-bottom: 10px;
   }
 
-  @keyframes appear {
+  /* Animation */
+  @keyframes fadeIn {
     from {
       opacity: 0;
-      scale: 0.5;
+      transform: scale(0.95);
     }
     to {
       opacity: 1;
-      scale: 1;
+      transform: scale(1);
     }
   }
 
   .card {
-    animation: appear linear;
-    animation-timeline: view();
-    animation-range: entry 0% cover 40%;
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  /* Product Card Styling */
+  .card-product-grid {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease-in-out;
+  }
+
+  .card-product-grid:hover {
+    transform: translateY(-5px);
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  .img-wrap {
+    width: 100%;
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #f8f8f8;
+  }
+
+  .img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .info-wrap {
+    padding: 15px;
+    background: #fff;
+  }
+
+  .title {
+    font-size: 16px;
+    color: #333;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .title:hover {
+    color: #ff6b6b;
+  }
+
+  .price {
+    font-size: 18px;
+    font-weight: bold;
+    color: #126be8;
+  }
+
+  /* Pagination */
+  .pagination .page-link {
+    color: #126be8;
+    border-radius: 5px;
+  }
+
+  .pagination .page-item.active .page-link {
+    background-color: #126be8;
+    border-color: #126be8;
+  }
+
+  .pagination .page-item.disabled .page-link {
+    color: #ccc;
   }
 </style>
+
 <div class="container mt-3 pt-3">
   {% include 'base/alert.html' %}
+
   <!-- Filter Section -->
-  <div class="filter-section mb-3">
+  <div class="filter-section">
     <form method="GET" class="row">
       <div class="form-group col-md-6">
-        <label for="category">Category:</label>
+        <label for="category"><strong>Category:</strong></label>
         <select id="category" name="category" class="form-control" onchange="this.form.submit()">
           <option value="">All</option>
           {% for category in categories %}
-          <option value="{{ category.category_name }}" {% if selected_category == category.category_name %} selected {% endif %}>
+          <option value="{{ category.category_name }}" {% if selected_category == category.category_name %}selected{% endif %}>
             {{ category.category_name }}
           </option>
           {% endfor %}
         </select>
       </div>
-      
+
       <!-- Sort Section -->
       <div class="form-group col-md-6">
-        <label for="sort">Sort by:</label>
+        <label for="sort"><strong>Sort by:</strong></label>
         <select id="sort" name="sort" class="form-control" onchange="this.form.submit()">
           <option value="">Select</option>
           <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Newest</option>
@@ -58,23 +129,28 @@
   <!-- Product List -->
   <div class="row">
     {% for product in products %}
-    <div class="col-md-3">
+    <div class="col-md-3 col-sm-6 col-12 mb-4">
       <figure class="card card-product-grid">
         <div class="img-wrap">
-          <img src="/media/{{product.product_images.first.image}}" />
+          <img src="/media/{{ product.product_images.first.image }}" alt="{{ product.product_name }}">
         </div>
         <figcaption class="info-wrap border-top">
           <a href="{% url 'get_product' product.slug %}" class="title">
-            <b>{{ product.product_name }}</b></a>
-          <div class="price mt-2">₹{{product.price}}.00</div>
+            <b>{{ product.product_name|truncatewords:3 }}</b>
+          </a>
+          <div class="price mt-2">PKR {{ product.price }}.00</div>
         </figcaption>
       </figure>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center">
+      <p class="text-muted">No products found in this category.</p>
     </div>
     {% endfor %}
   </div>
 
   <!-- Pagination Section -->
-  <nav aria-label="Page navigation example">
+  <nav aria-label="Page navigation">
     <ul class="pagination justify-content-center mb-4">
       {% if products.has_previous %}
       <li class="page-item">
@@ -107,7 +183,7 @@
       {% endif %}
     </ul>
   </nav>
-  
 </div>
+
 
 {% endblock %}
