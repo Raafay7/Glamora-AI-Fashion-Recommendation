@@ -194,7 +194,6 @@ def cart(request):
                     'currency': 'pkr',
                     'product_data': {
                         'name': product_name,
-                        'images': [product_image_url] if product_image_url else []  
                     },
                     'unit_amount': int(unit_price * 100),  # Convert to paise
                 },
