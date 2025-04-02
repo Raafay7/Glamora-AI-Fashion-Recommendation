@@ -18,6 +18,69 @@ class Profile(BaseModel):
     bio = models.TextField(null=True, blank=True)
     shipping_address = models.ForeignKey(ShippingAddress, on_delete=models.CASCADE, related_name="shipping_address", null=True, blank=True)
 
+    CLOTHING_TYPE_CHOICES = [
+        ('Casual', 'Casual'),
+        ('Workwear', 'Workwear'),
+        ('Social occasions', 'Social occasions'),
+        ('Maternity', 'Maternity'),
+    ]
+    BODY_SHAPE_CHOICES = [
+        ('Hourglass', 'Hourglass – Waist is the narrowest part of the frame'),
+        ('Triangle', 'Triangle – Hips are broader than shoulders'),
+        ('Rectangle', 'Rectangle – Hips, shoulders, and waist are the same proportion'),
+        ('Oval', 'Oval – Hips and shoulders are narrower than waist'),
+    ]
+    SKIN_TONE_CHOICES = [
+        ('Light', 'Light – Very fair or pale'),
+        ('Wheatish', 'Wheatish – Fair with warm undertones'),
+        ('Medium Tan', 'Medium Tan – Moderate brown with neutral undertones'),
+        ('Deep Brown', 'Deep Brown – Dark complexion'),
+    ]
+    HAIR_COLOR_CHOICES = [
+        ('Black', 'Black'),
+        ('Brown', 'Brown'),
+        ('Dyed', 'Dyed (Blonde, Red, Balayage, etc.)'),
+        ('Other', 'Other'),
+    ]
+    CLOTHING_SIZE_CHOICES = [
+        ('S', 'S'),
+        ('M', 'M'),
+        ('L', 'L'),
+        ('XL', 'XL'),
+    ]
+    BUDGET_RANGE_CHOICES = [
+        ('Budget', 'Budget – Affordable brands, local markets'),
+        ('Mid-range', 'Mid-range – High-street brands like Sapphire, Khaadi'),
+        ('Premium', 'Premium – Luxury brands like Élan, Sania Maskatiya'),
+        ('It Varies', 'It Varies'),
+    ]
+    HEIGHT_CHOICES = [
+        ('Under 5\'2\"', 'Under 5\'2\" (Petite)'),
+        ('5\'3\" - 5\'6\"', '5\'3\" - 5\'6\" (Average)'),
+        ('5\'7\" - 5\'10\"', '5\'7\" - 5\'10\" (Tall)'),
+        ('Above 5\'10\"', 'Above 5\'10\"'),
+    ]
+    FAVORITE_BRANDS_CHOICES = [
+        ('Khaadi', 'Khaadi'),
+        ('Gul Ahmed', 'Gul Ahmed'),
+        ('Sapphire', 'Sapphire'),
+        ('Bonanza Satrangi', 'Bonanza Satrangi'),
+    ]
+
+    clothing_types = models.CharField(max_length=100, choices=CLOTHING_TYPE_CHOICES, default='Casual')
+    height = models.CharField(max_length=50, choices=HEIGHT_CHOICES, default="5'3\" - 5'6\" (Average)")
+    body_shape = models.CharField(max_length=100, choices=BODY_SHAPE_CHOICES, default="Rectangle")
+    skin_tone = models.CharField(max_length=100, choices=SKIN_TONE_CHOICES, default="Medium Tan")
+    hair_color = models.CharField(max_length=50, choices=HAIR_COLOR_CHOICES, default="Black")
+    clothing_size = models.CharField(max_length=10, choices=CLOTHING_SIZE_CHOICES, default="M")
+    favorite_brands = models.CharField(max_length=255, choices=FAVORITE_BRANDS_CHOICES, blank=True, null=True, default="")
+    budget_range = models.CharField(max_length=100, choices=BUDGET_RANGE_CHOICES, default="Mid-range")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # New field
+    style_quiz_completed = models.BooleanField(default=False)
+
     def __str__(self):
         return self.user.username
 
@@ -39,15 +102,12 @@ class Profile(BaseModel):
 
         super(Profile, self).save(*args, **kwargs)
 
-
-
 class Cart(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="cart", null=True, blank=True)
     coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True)
     is_paid = models.BooleanField(default=False)
-    razorpay_order_id = models.CharField(max_length=100, null=True, blank=True)
-    razorpay_payment_id = models.CharField(max_length=100, null=True, blank=True)
-    razorpay_payment_signature = models.CharField(max_length=100, null=True, blank=True)
+    stripe_checkout_session_id = models.CharField(max_length=100, null=True, blank=True)
+    stripe_payment_intent_id = models.CharField(max_length=100, null=True, blank=True)
 
     def get_cart_total(self):
         cart_items = self.cart_items.all()

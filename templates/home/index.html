@@ -76,18 +76,18 @@
   .price {
     font-size: 18px;
     font-weight: bold;
-    color: #ff6b6b;
+    color: #126be8;
   }
 
   /* Pagination */
   .pagination .page-link {
-    color: #ff6b6b;
+    color: #126be8;
     border-radius: 5px;
   }
 
   .pagination .page-item.active .page-link {
-    background-color: #ff6b6b;
-    border-color: #ff6b6b;
+    background-color: #126be8;
+    border-color: #126be8;
   }
 
   .pagination .page-item.disabled .page-link {
@@ -136,7 +136,7 @@
         </div>
         <figcaption class="info-wrap border-top">
           <a href="{% url 'get_product' product.slug %}" class="title">
-            <b>{{ product.product_name }}</b>
+            <b>{{ product.product_name|truncatewords:3 }}</b>
           </a>
           <div class="price mt-2">PKR {{ product.price }}.00</div>
         </figcaption>
@@ -184,5 +184,6 @@
     </ul>
   </nav>
 </div>
+
 
 {% endblock %}

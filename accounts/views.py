@@ -1,8 +1,9 @@
 import os
 import json
 import uuid
-import razorpay
-from weasyprint import CSS, HTML
+import stripe
+from io import BytesIO
+from xhtml2pdf import pisa
 from products.models import *
 from django.urls import reverse
 from django.conf import settings
@@ -11,23 +12,23 @@ from django.http import JsonResponse
 from home.models import ShippingAddress
 from django.contrib.auth.models import User
 from django.template.loader import get_template
-from accounts.models import Profile, Cart, CartItem, Order, OrderItem
-from base.emails import send_account_activation_email
 from django.views.decorators.http import require_POST
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect, HttpResponse
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib.auth import authenticate, login, logout
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.shortcuts import redirect, render, get_object_or_404
-from accounts.forms import UserUpdateForm, UserProfileForm, ShippingAddressForm, CustomPasswordChangeForm
+from accounts.models import Profile, Cart, CartItem, Order, OrderItem
+from accounts.forms import UserUpdateForm, UserProfileForm, ShippingAddressForm, CustomPasswordChangeForm, UserPreferenceForm
 
 
-# Create your views here.
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 def login_page(request):
-    next_url = request.GET.get('next') # Get the next URL from the query parameter
+    next_url = request.GET.get('next') 
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -37,17 +38,16 @@ def login_page(request):
             messages.warning(request, 'Account not found!')
             return HttpResponseRedirect(request.path_info)
 
-        if not user_obj[0].profile.is_email_verified:
-            messages.error(request, 'Account not verified!')
-            return HttpResponseRedirect(request.path_info)
-
         user_obj = authenticate(username=username, password=password)
         if user_obj:
             login(request, user_obj)
             messages.success(request, 'Login Successfull.')
 
-            # Check if the next URL is safe
-            if url_has_allowed_host_and_scheme(url=next_url, allowed_hosts=request.get_host()):
+            profile = Profile.objects.get(user=user_obj)
+            if not profile.style_quiz_completed:
+                return redirect('style_quiz') 
+
+            if url_has_allowed_host_and_scheme(url=next_url,allowed_hosts=request.get_host()):
                 return redirect(next_url)
             else:
                 return redirect('index')
@@ -81,9 +81,9 @@ def register_page(request):
         profile.email_token = str(uuid.uuid4())
         profile.save()
 
-        send_account_activation_email(email, profile.email_token)
-        messages.success(request, "An email has been sent to your mail.")
-        return HttpResponseRedirect(request.path_info)
+        request.session['just_registered'] = True
+        messages.success(request,"Registration successful!")
+        return redirect('login')
 
     return render(request, 'accounts/register.html')
 
@@ -127,7 +127,7 @@ def add_to_cart(request, uid):
         messages.success(request, 'Item added to cart successfully.')
 
     except Exception as e:
-        messages.error(request, 'Error adding item to cart.', str(e))
+        messages.error(request, f'Error adding item to cart: {str(e)}')
 
     return redirect(reverse('cart'))
 
@@ -140,6 +140,11 @@ def cart(request):
     if not cart_obj:
         messages.warning(request, "Your cart is empty. Please add a product to the cart.")
         return redirect(reverse('index'))
+    
+    profile = Profile.objects.filter(user=user).first()
+    if not profile or not profile.shipping_address:
+        messages.warning(request, "Please update your shipping address before checkout.")
+        return redirect(reverse('profile', kwargs={'username': user.username}))
 
     if request.method == 'POST':
         coupon_code = request.POST.get('coupon')
@@ -157,9 +162,165 @@ def cart(request):
             messages.success(request, 'Coupon applied successfully.')
 
         return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('cart')))
+    
+    if 'checkout' in request.GET and cart_obj:
+        cart_total = cart_obj.get_cart_total_price_after_coupon()
+        cart_total_in_paise = int(cart_total * 100)  
+        print(f"Cart Total in Paise: {cart_total_in_paise}")
 
-    context = {'cart': cart_obj, 'quantity_range': range(1, 6)}
+        if cart_total_in_paise < 100:
+            messages.warning(
+                request, 'Total amount in cart is less than the minimum required amount (1.00 PKR). Please add a product to the cart.')
+            return redirect('cart')
+        
+        line_items = []
+        for cart_item in cart_obj.cart_items.all():
+            product = cart_item.product
+            unit_price = product.price
+            
+            if cart_item.color_variant:
+                unit_price += cart_item.color_variant.price
+            if cart_item.size_variant:
+                unit_price += cart_item.size_variant.price
+
+            product_name = product.product_name
+            if cart_item.size_variant:
+                product_name += f" - Size: {cart_item.size_variant.size_name}"
+            if cart_item.color_variant:
+                product_name += f" - Color: {cart_item.color_variant.color_name}"
+
+            line_items.append({
+                'price_data': {
+                    'currency': 'pkr',
+                    'product_data': {
+                        'name': product_name,
+                        'images': [product_image_url] if product_image_url else []  
+                    },
+                    'unit_amount': int(unit_price * 100),  # Convert to paise
+                },
+                'quantity': cart_item.quantity,
+            })     
+
+        if cart_obj.coupon:
+            line_items.append({
+                'price_data': {
+                    'currency': 'pkr',
+                    'product_data': {
+                        'name': f'Discount (Coupon: {cart_obj.coupon.coupon_code})',
+                    },
+                    'unit_amount': int(cart_obj.coupon.discount_amount * 100),  
+                },
+                'quantity': 1,
+            })
+
+        try:
+            checkout_session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                shipping_address_collection={
+                    'allowed_countries': ['PK'],
+                },
+                customer_email=user.email,
+                line_items=line_items,
+                mode='payment',
+                success_url=request.build_absolute_uri(reverse('success')) + '?session_id={CHECKOUT_SESSION_ID}',
+                cancel_url=request.build_absolute_uri(reverse('cart')),
+
+                metadata={
+                'cart_id': str(cart_obj.uid),
+                'user_id': str(user.id),
+                },
+            )
+
+            # Save the session ID to the cart
+            cart_obj.stripe_checkout_session_id = checkout_session.id
+            cart_obj.save()
+
+            return redirect(checkout_session.url)
+            
+        except Exception as e:
+            messages.error(request, f"Error creating checkout session: {str(e)}")
+            return redirect('cart')
+        
+    context = {
+        'cart': cart_obj,
+        'quantity_range': range(1, 6),
+        'shipping_address': profile.shipping_address if profile else None,
+    }
+
     return render(request, 'accounts/cart.html', context)
+
+
+@login_required
+def success(request):
+    """Handle successful payment return from Stripe"""
+    session_id = request.GET.get('session_id')
+    if not session_id:
+        messages.error(request, "Invalid request.")
+        return redirect('index')
+    
+    try:
+        # Retrieve the session
+        session = stripe.checkout.Session.retrieve(
+            session_id,
+            expand=['payment_intent', 'line_items', 'customer', 'shipping']
+        )
+        
+        # Verify payment status
+        if session.payment_status != 'paid':
+            messages.error(request, "Payment not completed.")
+            return redirect('cart')
+        
+        # Get the cart
+        cart = Cart.objects.filter(stripe_checkout_session_id=session_id).first()
+        if not cart:
+            messages.error(request, "Order not found.")
+            return redirect('index')
+        
+        # Mark cart as paid
+        cart.is_paid = True
+        cart.stripe_payment_intent_id = session.payment_intent.id
+        cart.save()
+        
+        shipping_address_text = ""          
+        shipping_address = ShippingAddress.objects.filter(user=cart.user, current_address=True).first()
+
+        if shipping_address:
+            shipping_address_text = f"{shipping_address.first_name} {shipping_address.last_name}, " \
+                            f"{shipping_address.street}, {shipping_address.street_number}, " \
+                            f"{shipping_address.city}, {shipping_address.country}, " \
+                            f"{shipping_address.zip_code}, {shipping_address.phone}"
+        else:
+            shipping_address_text = "No shipping address found."
+        
+        # Create the order
+        order = Order.objects.create(
+            user=cart.user,
+            order_id=session.payment_intent.id if session.payment_intent else None,
+            payment_status="Paid",
+            shipping_address=shipping_address_text,
+            payment_mode="Stripe",
+            order_total_price=cart.get_cart_total(),
+            coupon=cart.coupon,
+            grand_total=cart.get_cart_total_price_after_coupon(),
+        )
+        
+        # Create order items
+        for cart_item in cart.cart_items.all():
+            OrderItem.objects.create(
+                order=order,
+                product=cart_item.product,
+                size_variant=cart_item.size_variant,
+                color_variant=cart_item.color_variant,
+                quantity=cart_item.quantity,
+                product_price=cart_item.get_product_price()
+            )
+        
+        context = {'order': order, 'order_id': order.order_id}
+        return render(request, 'payment_success/payment_success.html', context)
+        
+    except Exception as e:
+        messages.error(request, f"An error occurred: {str(e)}")
+        return redirect('cart')
 
 
 @require_POST
@@ -201,53 +362,91 @@ def remove_coupon(request, cart_id):
     return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 
-# Payment success view
-def success(request):
-    order_id = request.GET.get('order_id')
-    cart = get_object_or_404(Cart, razorpay_order_id=order_id)
+@ensure_csrf_cookie
+def style_quiz_view(request):
+    """Renders the style quiz page"""
+    return render(request, 'accounts/style_quiz.html')
 
-    # Mark the cart as paid
-    cart.is_paid = True
-    cart.save()
 
-    # Create the order after payment is confirmed
-    order = create_order(cart)
+def save_style_quiz(request):
+    """Saves the user's style preferences from the quiz"""
+    if request.method == 'POST':
+        try:
+            # Extract data from POST request
+            clothing_types = request.POST.get('answer_0', '')
+            height = request.POST.get('answer_1', '')
+            body_shape = request.POST.get('answer_2', '')
+            skin_tone = request.POST.get('answer_3', '')
+            hair_color = request.POST.get('answer_4', '')
+            clothing_size = request.POST.get('answer_5', '')
+            favorite_brands = request.POST.get('answer_6', '')
+            budget_range = request.POST.get('answer_7', '')
 
-    context = {'order_id': order_id, 'order': order}
-    return render(request, 'payment_success/payment_success.html', context)
+            # Update Profile model
+            profile = Profile.objects.get(user=request.user)
+            profile.clothing_types = clothing_types
+            profile.height = height
+            profile.body_shape = body_shape
+            profile.skin_tone = skin_tone
+            profile.hair_color = hair_color
+            profile.clothing_size = clothing_size
+            profile.favorite_brands = favorite_brands
+            profile.budget_range = budget_range
+            profile.style_quiz_completed = True
+            profile.save()
+
+            return JsonResponse({'success': True})
+        
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
 
 
 # HTML to PDF Conversion
 def render_to_pdf(template_src, context_dict={}):
     template = get_template(template_src)
     html = template.render(context_dict)
-
-    static_root = settings.STATIC_ROOT
-    css_files = [
-        os.path.join(static_root, 'css', 'bootstrap.css'),
-        os.path.join(static_root, 'css', 'responsive.css'),
-        os.path.join(static_root, 'css', 'ui.css'),
-    ]
-    css_objects = [CSS(filename=css_file) for css_file in css_files]
-    pdf_file = HTML(string=html).write_pdf(stylesheets=css_objects)
-
-    response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="invoice_{context_dict["order"].order_id}.pdf"'
-    return response
+    
+    # Generate PDF using xhtml2pdf
+    result = BytesIO()
+    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+    
+    if not pdf.err:
+        return result.getvalue()  # Return raw PDF data
+    return None
 
 
 def download_invoice(request, order_id):
     order = Order.objects.filter(order_id=order_id).first()
-    order_items = order.order_items.all()
+    
+    if not order:
+        return HttpResponse("Order not found", status=404)
 
+    order_items = order.order_items.all()
     context = {
         'order': order,
         'order_items': order_items,
     }
 
-    pdf = render_to_pdf('accounts/order_pdf_generate.html', context)
-    if pdf:
-        return pdf
+    # Generate PDF
+    pdf_data = render_to_pdf('accounts/order_pdf_generate.html', context)
+    
+    if pdf_data:
+        # Define file path to save the PDF
+        file_path = os.path.join(settings.MEDIA_ROOT, f"invoices/{order_id}.pdf")
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+        # Save PDF file to disk
+        with open(file_path, "wb") as f:
+            f.write(pdf_data)
+
+        # Serve the file as a response
+        with open(file_path, "rb") as pdf_file:
+            response = HttpResponse(pdf_file.read(), content_type="application/pdf")
+            response["Content-Disposition"] = f'attachment; filename="Order_{order_id}.pdf"'
+            return response
+
     return HttpResponse("Error generating PDF", status=400)
 
 
@@ -279,6 +478,26 @@ def profile_view(request, username):
 
 
 @login_required
+def preferences(request):
+    user = request.user
+    profile = user.profile
+    preference_form = UserPreferenceForm(instance=profile)
+
+    if request.method == 'POST':
+        preference_form = UserPreferenceForm(request.POST, instance=profile)
+        if preference_form.is_valid():
+            preference_form.save()
+            messages.success(request, 'Your preferences has been updated successfully!')
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+    context = {
+        'form': preference_form
+    }
+
+    return render(request, 'accounts/preferences.html', context)
+
+
+@login_required
 def change_password(request):
     if request.method == 'POST':
         form = CustomPasswordChangeForm(request.user, request.POST)
@@ -296,8 +515,9 @@ def change_password(request):
 
 @login_required
 def update_shipping_address(request):
+    user = request.user
     shipping_address = ShippingAddress.objects.filter(
-        user=request.user, current_address=True).first()
+        user=user, current_address=True).first()
 
     if request.method == 'POST':
         form = ShippingAddressForm(request.POST, instance=shipping_address)
@@ -306,15 +526,16 @@ def update_shipping_address(request):
             shipping_address.user = request.user
             shipping_address.current_address = True
             shipping_address.save()
-
+            profile = Profile.objects.filter(user=user).first()
+            if profile:
+                profile.shipping_address = shipping_address
+                profile.save()
             messages.success(request, "The Address Has Been Successfully Saved/Updated!")
-
             form = ShippingAddressForm()
         else:
             form = ShippingAddressForm(request.POST, instance=shipping_address)
     else:
         form = ShippingAddressForm(instance=shipping_address)
-
     return render(request, 'accounts/shipping_address_form.html', {'form': form})
 
 
@@ -329,10 +550,10 @@ def order_history(request):
 def create_order(cart):
     order, created = Order.objects.get_or_create(
         user=cart.user,
-        order_id=cart.razorpay_order_id,
+        order_id=cart.stripe_payment_intent_id,
         payment_status="Paid",
         shipping_address=cart.user.profile.shipping_address,
-        payment_mode="Razorpay",
+        payment_mode="Stripe",
         order_total_price=cart.get_cart_total(),
         coupon=cart.coupon,
         grand_total=cart.get_cart_total_price_after_coupon(),
