@@ -48,8 +48,6 @@ class Product(BaseModel):
     color_variant = models.ManyToManyField(ColorVariant, blank=True)
     size_variant = models.ManyToManyField(SizeVariant, blank=True)
     newest_product = models.BooleanField(default=False)
-<<<<<<< HEAD
-=======
     clothing_type = models.CharField(max_length=100, default="Casual")
     body_shape = models.CharField(max_length=100, default="Rectangle")
     skin_tone = models.CharField(max_length=100, default="Medium Tan")
@@ -57,7 +55,6 @@ class Product(BaseModel):
     brand = models.CharField(max_length=255, blank=True, null=True)
 
 
->>>>>>> frontend-chages
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.product_name)
