@@ -70,14 +70,10 @@
 
             <form method="POST">
               {% csrf_token %}
-              <div class="form-row">
-                <div class="form-group col-md-7">{{ form.clothing_types|as_crispy_field }}</div>
-                <div class="form-group col-md-5">{{ form.height|as_crispy_field }}</div>
-              </div>
-              
+
               <div class="form-row">
                 <div class="form-group col-md-7">{{ form.body_shape|as_crispy_field }}</div>
-                <div class="form-group col-md-5">{{ form.hair_color|as_crispy_field }} </div>
+                <div class="form-group col-md-5">{{ form.clothing_types|as_crispy_field }}</div>                
               </div>
               
               <div class="form-row">

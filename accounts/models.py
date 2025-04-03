@@ -21,7 +21,7 @@ class Profile(BaseModel):
     CLOTHING_TYPE_CHOICES = [
         ('Casual', 'Casual'),
         ('Workwear', 'Workwear'),
-        ('Social occasions', 'Social occasions'),
+        ('Social', 'Social occasions'),
         ('Maternity', 'Maternity'),
     ]
     BODY_SHAPE_CHOICES = [
@@ -33,15 +33,10 @@ class Profile(BaseModel):
     SKIN_TONE_CHOICES = [
         ('Light', 'Light – Very fair or pale'),
         ('Wheatish', 'Wheatish – Fair with warm undertones'),
-        ('Medium Tan', 'Medium Tan – Moderate brown with neutral undertones'),
-        ('Deep Brown', 'Deep Brown – Dark complexion'),
+        ('Tan', 'Medium Tan – Moderate brown with neutral undertones'),
+        ('Brown', 'Deep Brown – Dark complexion'),
     ]
-    HAIR_COLOR_CHOICES = [
-        ('Black', 'Black'),
-        ('Brown', 'Brown'),
-        ('Dyed', 'Dyed (Blonde, Red, Balayage, etc.)'),
-        ('Other', 'Other'),
-    ]
+
     CLOTHING_SIZE_CHOICES = [
         ('S', 'S'),
         ('M', 'M'),
@@ -52,14 +47,9 @@ class Profile(BaseModel):
         ('Budget', 'Budget – Affordable brands, local markets'),
         ('Mid-range', 'Mid-range – High-street brands like Sapphire, Khaadi'),
         ('Premium', 'Premium – Luxury brands like Élan, Sania Maskatiya'),
-        ('It Varies', 'It Varies'),
+        ('Varies', 'It Varies'),
     ]
-    HEIGHT_CHOICES = [
-        ('Under 5\'2\"', 'Under 5\'2\" (Petite)'),
-        ('5\'3\" - 5\'6\"', '5\'3\" - 5\'6\" (Average)'),
-        ('5\'7\" - 5\'10\"', '5\'7\" - 5\'10\" (Tall)'),
-        ('Above 5\'10\"', 'Above 5\'10\"'),
-    ]
+
     FAVORITE_BRANDS_CHOICES = [
         ('Khaadi', 'Khaadi'),
         ('Gul Ahmed', 'Gul Ahmed'),
@@ -68,10 +58,8 @@ class Profile(BaseModel):
     ]
 
     clothing_types = models.CharField(max_length=100, choices=CLOTHING_TYPE_CHOICES, default='Casual')
-    height = models.CharField(max_length=50, choices=HEIGHT_CHOICES, default="5'3\" - 5'6\" (Average)")
     body_shape = models.CharField(max_length=100, choices=BODY_SHAPE_CHOICES, default="Rectangle")
-    skin_tone = models.CharField(max_length=100, choices=SKIN_TONE_CHOICES, default="Medium Tan")
-    hair_color = models.CharField(max_length=50, choices=HAIR_COLOR_CHOICES, default="Black")
+    skin_tone = models.CharField(max_length=100, choices=SKIN_TONE_CHOICES, default="Tan")
     clothing_size = models.CharField(max_length=10, choices=CLOTHING_SIZE_CHOICES, default="M")
     favorite_brands = models.CharField(max_length=255, choices=FAVORITE_BRANDS_CHOICES, blank=True, null=True, default="")
     budget_range = models.CharField(max_length=100, choices=BUDGET_RANGE_CHOICES, default="Mid-range")

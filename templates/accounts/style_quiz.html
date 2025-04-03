@@ -168,6 +168,11 @@
   margin-bottom: 30px;
 }
 
+.option-image {
+  max-width: 50px;
+  margin-left: 10px;
+}
+
 .quiz-header h1 {
   color: #333;
   margin-bottom: 10px;
@@ -188,29 +193,23 @@ document.addEventListener('DOMContentLoaded', function() {
       type: "radio"
     },
     {
-      question: "How tall are you?",
-      options: ["Under 5'2\" (Petite)", "5'3\" - 5'6\" (Average)", "5'7\" - 5'10\" (Tall)", "Above 5'10\""],
-      type: "radio"
-    },
-    {
       question: "What is your body shape?",
-      options: ["Hourglass – Waist is the narrowest part of the frame", 
-                "Triangle – Hips are broader than shoulders", 
-                "Rectangle – Hips, shoulders, and waist are the same proportion", 
-                "Oval – Hips and shoulders are narrower than waist"], 
+      options: [
+      { text: "Hourglass – Waist is the narrowest part of the frame", img: "{% static 'images/hourglass.jpg' %}" },
+        { text: "Triangle – Hips are broader than shoulders", img: "{% static 'images/triangle.jpg' %}" },
+        { text: "Rectangle – Hips, shoulders, and waist are the same proportion", img: "{% static 'images/rectangle.jpg' %}" },
+        { text: "Oval – Hips and shoulders are narrower than waist", img: "{% static 'images/oval.jpg' %}" }
+              ], 
       type: "radio"
     },
     {
       question: "What is your skin tone?",
-      options: ["Light (Very fair or pale)", 
-                "Wheatish (Fair with warm undertones)", 
-                "Medium Tan (Moderate brown with neutral undertones)", 
-                "Deep Brown (Dark complexion)"],
-      type: "radio"
-    },
-    {
-      question: "What is your hair color?",
-      options: ["Black", "Brown", "Dyed (Blonde, Red, Balayage)", "Other" ],
+      options: [
+        { text: "Light (Very fair or pale)", img: "{% static 'images/light.png' %}" },
+        { text: "Wheatish (Fair with warm undertones)", img: "{% static 'images/wheatish.png' %}" },
+        { text: "Medium Tan (Moderate brown with neutral undertones)", img: "{% static 'images/tan.png' %}" },
+        { text: "Deep Brown (Dark complexion)", img: "{% static 'images/brown.png' %}" }
+                ],
       type: "radio"
     },
     {
@@ -288,7 +287,7 @@ document.addEventListener('DOMContentLoaded', function() {
       input.type = currentQuizData.type;
       input.id = `q${currentQuestion}-option${index}`;
       input.name = `question${currentQuestion}`;
-      input.value = option;
+      input.value = option.text ? option.text : option;
       
       // Check if this option was previously selected
       if (currentQuizData.type === 'radio' && answers[currentQuestion] === option) {
@@ -301,10 +300,19 @@ document.addEventListener('DOMContentLoaded', function() {
       
       const label = document.createElement('label');
       label.htmlFor = `q${currentQuestion}-option${index}`;
-      label.textContent = option;
+      label.textContent = option.text ? option.text : option;
       
       optionContainer.appendChild(input);
       optionContainer.appendChild(label);
+
+      if (typeof option === 'object' && option.img) {
+        const img = document.createElement('img');
+        img.src = option.img;
+        img.alt = option.text ? option.text : option;
+        img.classList.add('option-image');
+        optionContainer.appendChild(img);
+      }
+
       optionsContainer.appendChild(optionContainer);
       
       // Add event listener to save answer when selected

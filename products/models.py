@@ -44,17 +44,44 @@ class Product(BaseModel):
     slug = models.SlugField(unique=True, null=True, blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="products")
     price = models.IntegerField()
-    product_desription = models.TextField()
+    product_description = models.TextField()
     color_variant = models.ManyToManyField(ColorVariant, blank=True)
     size_variant = models.ManyToManyField(SizeVariant, blank=True)
     newest_product = models.BooleanField(default=False)
-    clothing_type = models.CharField(max_length=100, default="Casual")
-    body_shape = models.CharField(max_length=100, default="Rectangle")
-    skin_tone = models.CharField(max_length=100, default="Medium Tan")
-    hair_color = models.CharField(max_length=50, default="Black")
-    brand = models.CharField(max_length=255, blank=True, null=True)
+    occasion_tags = models.CharField(max_length=100, blank=True)
+    location_tags = models.CharField(max_length=100, blank=True)  
+    seasonal_tags = models.CharField(max_length=100, blank=True) 
 
+    CLOTHING_TYPE_CHOICES = [
+        ('Casual', 'Casual'),
+        ('Workwear', 'Workwear'),
+        ('Social', 'Social occasions'),
+        ('Maternity', 'Maternity'),
+    ]
+    BODY_SHAPE_CHOICES = [
+        ('Hourglass', 'Hourglass – Waist is the narrowest part of the frame'),
+        ('Triangle', 'Triangle – Hips are broader than shoulders'),
+        ('Rectangle', 'Rectangle – Hips, shoulders, and waist are the same proportion'),
+        ('Oval', 'Oval – Hips and shoulders are narrower than waist'),
+    ]
+    SKIN_TONE_CHOICES = [
+        ('Light', 'Light – Very fair or pale'),
+        ('Wheatish', 'Wheatish – Fair with warm undertones'),
+        ('Tan', 'Medium Tan – Moderate brown with neutral undertones'),
+        ('Brown', 'Deep Brown – Dark complexion'),
+    ]
 
+    FAVORITE_BRANDS_CHOICES = [
+        ('Khaadi', 'Khaadi'),
+        ('Gul Ahmed', 'Gul Ahmed'),
+        ('Sapphire', 'Sapphire'),
+        ('Bonanza Satrangi', 'Bonanza Satrangi'),
+    ]
+
+    clothing_types = models.CharField(max_length=100, choices=CLOTHING_TYPE_CHOICES, blank=True, null=True)
+    body_shapes = models.CharField(max_length=100, choices=BODY_SHAPE_CHOICES, blank=True, null=True)
+    skin_tones =  models.CharField(max_length=100, choices=SKIN_TONE_CHOICES, blank=True, null=True)
+    brand = models.CharField(max_length=255, choices=FAVORITE_BRANDS_CHOICES , blank=True, null=True)
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.product_name)

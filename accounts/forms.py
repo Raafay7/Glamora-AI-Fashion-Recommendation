@@ -13,7 +13,7 @@ class UserProfileForm(forms.ModelForm):
 class UserPreferenceForm(forms.ModelForm):
     class Meta:
         model = Profile
-        fields = ['clothing_types', 'height', 'body_shape', 'skin_tone', 'hair_color', 'clothing_size', 'favorite_brands', 'budget_range']
+        fields = ['clothing_types', 'body_shape', 'skin_tone', 'clothing_size', 'favorite_brands', 'budget_range']
 
 
 class UserUpdateForm(forms.ModelForm):

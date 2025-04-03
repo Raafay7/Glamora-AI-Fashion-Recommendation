@@ -373,21 +373,17 @@ def save_style_quiz(request):
         try:
             # Extract data from POST request
             clothing_types = request.POST.get('answer_0', '')
-            height = request.POST.get('answer_1', '')
-            body_shape = request.POST.get('answer_2', '')
-            skin_tone = request.POST.get('answer_3', '')
-            hair_color = request.POST.get('answer_4', '')
-            clothing_size = request.POST.get('answer_5', '')
-            favorite_brands = request.POST.get('answer_6', '')
-            budget_range = request.POST.get('answer_7', '')
+            body_shape = request.POST.get('answer_1', '')
+            skin_tone = request.POST.get('answer_2', '')
+            clothing_size = request.POST.get('answer_3', '')
+            favorite_brands = request.POST.get('answer_4', '')
+            budget_range = request.POST.get('answer_5', '')
 
             # Update Profile model
             profile = Profile.objects.get(user=request.user)
             profile.clothing_types = clothing_types
-            profile.height = height
             profile.body_shape = body_shape
             profile.skin_tone = skin_tone
-            profile.hair_color = hair_color
             profile.clothing_size = clothing_size
             profile.favorite_brands = favorite_brands
             profile.budget_range = budget_range
