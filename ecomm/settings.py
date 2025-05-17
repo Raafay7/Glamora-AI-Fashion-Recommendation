@@ -149,11 +149,19 @@ WSGI_APPLICATION = 'ecomm.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
+<<<<<<< HEAD
         'NAME': 'glamora',
         'USER': 'zeeshan',
         'PASSWORD': 'zeeshan',
         'HOST': 'localhost',  
         'PORT': '5432',       
+=======
+        'NAME': 'railway',
+        'USER': 'postgres',
+        'PASSWORD': 'ZWsFoRdyJTKilCpxFEuraYSBNAXPsRww',
+        'HOST': 'trolley.proxy.rlwy.net',  
+        'PORT': '45972',       
+>>>>>>> d7d969c (products added)
     }
 }
 
