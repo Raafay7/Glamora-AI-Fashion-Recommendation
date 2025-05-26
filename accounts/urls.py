@@ -49,4 +49,8 @@ urlpatterns = [
     path('delete-account/', delete_account, name='delete_account'),
     path('style-quiz/', style_quiz_view, name='style_quiz'),
     path('save-style-quiz/', save_style_quiz, name='save_style_quiz'),
+
+
+    path('recommendations/', recommendation_page, name='recommendation_page'),
+    path('generate/', GenerateRecommendationsView.as_view(), name='generate_recommendations'),
 ]

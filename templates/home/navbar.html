@@ -52,6 +52,7 @@
       <div class="collapse navbar-collapse" id="navbarCollapse">
         <ul class="navbar-nav mr-auto" style="gap: 20px;">
           <li class="nav-item"><a class="nav-link" href="{% url 'index' %}">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'recommendation_page' %}">Get Recommendations </a></li>
           {% if user.is_authenticated %}
             <li class="nav-item"><a class="nav-link" href="{% url 'wishlist' %}">Wishlist ({{ request.user.wishlist.count }})</a></li>
           {% else %}

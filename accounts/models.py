@@ -25,16 +25,16 @@ class Profile(BaseModel):
         ('Maternity', 'Maternity'),
     ]
     BODY_SHAPE_CHOICES = [
-        ('Hourglass', 'Hourglass – Waist is the narrowest part of the frame'),
-        ('Triangle', 'Triangle – Hips are broader than shoulders'),
-        ('Rectangle', 'Rectangle – Hips, shoulders, and waist are the same proportion'),
-        ('Oval', 'Oval – Hips and shoulders are narrower than waist'),
+        ('Hourglass', 'Hourglass'),
+        ('Triangle', 'Triangle'),
+        ('Rectangle', 'Rectangle'),
+        ('Oval', 'Oval'),
     ]
     SKIN_TONE_CHOICES = [
-        ('Light', 'Light – Very fair or pale'),
-        ('Wheatish', 'Wheatish – Fair with warm undertones'),
-        ('Tan', 'Medium Tan – Moderate brown with neutral undertones'),
-        ('Brown', 'Deep Brown – Dark complexion'),
+        ('Light', 'Light'),
+        ('Wheatish', 'Wheatish'),
+        ('Tan', 'Tan'),
+        ('Brown', 'Brown'),
     ]
 
     CLOTHING_SIZE_CHOICES = [
@@ -44,10 +44,10 @@ class Profile(BaseModel):
         ('XL', 'XL'),
     ]
     BUDGET_RANGE_CHOICES = [
-        ('Budget', 'Budget – Affordable brands, local markets'),
-        ('Mid-range', 'Mid-range – High-street brands like Sapphire, Khaadi'),
-        ('Premium', 'Premium – Luxury brands like Élan, Sania Maskatiya'),
-        ('Varies', 'It Varies'),
+        ('Budget', 'Budget'),
+        ('Midrange', 'Midrange'),
+        ('Premium', 'Premium'),
+        ('Varies', 'Varies'),
     ]
 
     FAVORITE_BRANDS_CHOICES = [

@@ -1,9 +1,11 @@
 import os
 import json
 import uuid
+import math
 import stripe
 from io import BytesIO
 from xhtml2pdf import pisa
+from django.views import View
 from products.models import *
 from django.urls import reverse
 from django.conf import settings
@@ -12,16 +14,19 @@ from django.http import JsonResponse
 from home.models import ShippingAddress
 from django.contrib.auth.models import User
 from django.template.loader import get_template
+from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect, HttpResponse
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.contrib.auth import authenticate, login, logout
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.shortcuts import redirect, render, get_object_or_404
-from accounts.models import Profile, Cart, CartItem, Order, OrderItem
+from accounts.models import Profile, Cart, CartItem, Order, OrderItem, Product
 from accounts.forms import UserUpdateForm, UserProfileForm, ShippingAddressForm, CustomPasswordChangeForm, UserPreferenceForm
+
+
 
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -593,3 +598,322 @@ def delete_account(request):
         user.delete()
         messages.success(request, "Your account has been deleted successfully.")
         return redirect('index')
+
+
+#recommendations
+
+
+
+class RecommendationEngine:
+    @staticmethod
+    def encode_user_profile(profile_dict):
+        """One-hot encode user profile"""
+        encoded = {}
+        
+        categories = {
+            'body_shape': ['Triangle', 'Rectangle', 'Hourglass', 'Oval'],
+            'clothing_type': ['Social', 'Casual', 'Workwear', 'Maternity'],
+            'skin_tone': ['Wheatish', 'Tan', 'Brown', 'Light'],
+            'location_tag': ['Home', 'Outdoor'],
+            'occasion_tag': ['Dinner', 'Wedding', 'Date Night', 'Formal Event'],
+            'seasonal_tag': ['Summer', 'Winter', 'Spring', 'Fall', 'Festive'],
+        }
+        
+        for category, options in categories.items():
+            for option in options:
+                key = f"{category}_{option.replace(' ', '_')}"
+                encoded[key] = 1 if profile_dict.get(category) == option else 0
+        
+        return encoded
+    
+    @staticmethod
+    def assign_to_cluster(encoded_profile):
+        """Simple cluster assignment based on preferences"""
+        primary_prefs = []
+        
+        if (encoded_profile.get('clothing_type_Social', 0) or 
+            encoded_profile.get('clothing_type_Workwear', 0)):
+            primary_prefs.append('formal')
+        
+        if encoded_profile.get('clothing_type_Casual', 0):
+            primary_prefs.append('casual')
+        
+        if (encoded_profile.get('body_shape_Triangle', 0) or 
+            encoded_profile.get('body_shape_Rectangle', 0)):
+            primary_prefs.append('structured')
+        
+        if (encoded_profile.get('body_shape_Hourglass', 0) or 
+            encoded_profile.get('body_shape_Oval', 0)):
+            primary_prefs.append('fitted')
+        
+        # Cluster assignment logic
+        if 'formal' in primary_prefs and 'structured' in primary_prefs:
+            return 0
+        elif 'formal' in primary_prefs and 'fitted' in primary_prefs:
+            return 1
+        elif 'casual' in primary_prefs and 'structured' in primary_prefs:
+            return 2
+        else:
+            return 3
+    
+    @staticmethod
+    def extract_keywords(prompt):
+        """Extract keywords from user prompt"""
+        text = prompt.lower()
+        keywords = []
+        
+        keyword_maps = {
+            'occasions': ['dinner', 'wedding', 'date', 'formal', 'interview', 'party', 'work'],
+            'seasons': ['summer', 'winter', 'spring', 'fall', 'festive'],
+            'styles': ['casual', 'formal', 'social', 'workwear', 'loose', 'fitted', 'embroidered'],
+            'clothing': ['shirt', 'pants', 'dress', 'suit', 'trouser', 'abaya', 'saree', 'frock'],
+            'colors': ['black', 'blue', 'green', 'white', 'grey', 'cream', 'lilac'],
+            'locations': ['home', 'outdoor', 'restaurant', 'office', 'university']
+        }
+        
+        for category_keywords in keyword_maps.values():
+            for keyword in category_keywords:
+                if keyword in text:
+                    keywords.append(keyword)
+        
+        return list(set(keywords))  # Remove duplicates
+    
+    @staticmethod
+    def cosine_similarity(vec_a, vec_b):
+        """Calculate cosine similarity between two vectors"""
+        # Get all keys from both vectors
+        all_keys = set(list(vec_a.keys()) + list(vec_b.keys()))
+        
+        dot_product = sum(vec_a.get(key, 0) * vec_b.get(key, 0) for key in all_keys)
+        
+        magnitude_a = math.sqrt(sum(val * val for val in vec_a.values()))
+        magnitude_b = math.sqrt(sum(val * val for val in vec_b.values()))
+        
+        if magnitude_a == 0 or magnitude_b == 0:
+            return 0
+        
+        return dot_product / (magnitude_a * magnitude_b)
+    
+    @staticmethod
+    def create_product_vector(product, keywords):
+        """Create vector representation of product"""
+        vector = {}
+        
+        # Product attributes mapping
+        attrs = {
+            'body_shape': product.body_shapes,
+            'clothing_type': product.clothing_types,
+            'skin_tone': product.skin_tones,
+            'location_tag': product.location_tags,
+            'occasion_tag': product.occasion_tags,
+            'seasonal_tag': product.seasonal_tags,
+        }
+
+        for attr, value in attrs.items():
+            if value:
+                key = f"{attr}_{value.replace(' ', '_')}"
+                vector[key] = 1
+        
+        # Add keyword matches
+        product_text = f"{product.product_name} {product.product_description} {product.brand}".lower()
+
+        for keyword in keywords:
+            if keyword in product_text:
+                vector[f"keyword_{keyword}"] = 1
+
+        return vector
+    
+    @staticmethod
+    def create_user_vector(profile_dict, keywords):
+        """Create user vector from profile and keywords"""
+        encoded = RecommendationEngine.encode_user_profile(profile_dict)
+        
+        # Add keyword preferences
+        for keyword in keywords:
+            encoded[f"keyword_{keyword}"] = 1
+        
+        return encoded
+    
+    @staticmethod
+    def filter_by_price_range(products, price_range):
+        """Filter products by price range"""
+        if not price_range or price_range == 'Any':
+            return products
+        
+        ranges = {
+            'Budget': (0, 3000),
+            'Midrange': (3000, 5000),
+            'Premium': (5000, 8000),
+            'Varies': (8000, float('inf'))
+        }
+        
+        min_price, max_price = ranges.get(price_range, (0, float('inf')))
+        return products.filter(price__gte=min_price, price__lt=max_price)
+    
+@staticmethod
+def get_match_reasons(product, profile_dict, keywords):
+    """Get reasons why product matches user preferences"""
+
+    # Your custom defaults
+    defaults = {
+        'body_shape': 'Hourglass',
+        'clothing_type': 'Workwear',
+        'skin_tone': 'Wheatish',
+        'occasion_tag': 'Dinner',
+        'seasonal_tag': 'Summer'
+    }
+
+    def get_value(key):
+        return str(profile_dict.get(key) or defaults[key]).strip().lower()
+    
+    def safe_match(val1, val2):
+        if not val1 or not val2:
+            return False
+        return str(val1).strip().lower() == str(val2).strip().lower()
+
+    reasons = []
+
+    if safe_match(product.body_shapes, get_value('body_shape')):
+        reasons.append(f"Perfect fit for {get_value('body_shape')} body shape")
+
+    if safe_match(product.clothing_types, get_value('clothing_type')):
+        reasons.append(f"Matches your {get_value('clothing_type')} style preference")
+
+    if safe_match(product.skin_tones, get_value('skin_tone')):
+        reasons.append(f"Complements your {get_value('skin_tone')} skin tone")
+
+    if safe_match(product.occasion_tags, get_value('occasion_tag')):
+        reasons.append(f"Perfect for {get_value('occasion_tag')} occasions")
+
+    if safe_match(product.seasonal_tags, get_value('seasonal_tag')):
+        reasons.append(f"Ideal for {get_value('seasonal_tag')} season")
+
+    # Check keyword matches
+    product_text = f"{product.product_name or ''} {product.product_description or ''}".lower()
+
+    for keyword in keywords:
+        if keyword in product_text:
+            reasons.append(f'Matches your search for "{keyword}"')
+
+    return reasons  # Limit to 3 reasons
+
+
+@login_required
+def recommendation_page(request):
+    """Render the recommendation page"""
+    # Check if user has style preferences
+    try:
+        user_preferences = Profile.objects.get(user=request.user)
+        has_preferences = True
+    except Profile.DoesNotExist:
+        has_preferences = False
+        user_preferences = None
+    
+    context = {
+        'has_preferences': has_preferences,
+        'user_preferences': user_preferences,
+    }
+    
+    return render(request, 'accounts/recommendation_page1.html', context)
+
+# @method_decorator(csrf_exempt, name='dispatch')
+# @method_decorator(login_required, name='dispatch')
+class GenerateRecommendationsView(View):
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            user_prompt = data.get('prompt', '').strip()
+            
+            if not user_prompt:
+                return JsonResponse({'error': 'Prompt is required'}, status=400)
+            
+            
+            # Get user preferences from database
+            try:
+                user_prefs = Profile.objects.get(user=request.user)
+                
+                profile_dict = {
+                    'body_shape': user_prefs.body_shape,
+                    'clothing_type': user_prefs.clothing_types,
+                    'occasion_tag': 'Dinner',
+                    'location_tag': 'Outdoor',
+                    'seasonal_tag': 'Summer',
+                    'skin_tone': user_prefs.skin_tone,
+                    'price_range': user_prefs.budget_range,
+                }
+            except Profile.DoesNotExist:
+                return JsonResponse({'error': 'User preferences not found'}, status=404)
+            
+            # Generate recommendations
+            engine = RecommendationEngine()
+            keywords = engine.extract_keywords(user_prompt)
+            user_vector = engine.create_user_vector(profile_dict, keywords)
+            cluster = engine.assign_to_cluster(engine.encode_user_profile(profile_dict))
+            
+            # Get products and filter by price range
+            products = Product.objects.filter().prefetch_related('product_images') 
+            filtered_products = engine.filter_by_price_range(products, profile_dict.get('price_range'))
+
+            # Calculate similarities and score products
+            scored_products = []
+            for product in filtered_products:
+                product_vector = engine.create_product_vector(product, keywords)
+                similarity = engine.cosine_similarity(user_vector, product_vector)
+                
+                # Boost score for matching attributes
+                boost = 0
+                if product.body_shapes == profile_dict.get('body_shape'):
+                    boost += 0.3
+                if product.clothing_types == profile_dict.get('clothing_type'):
+                    boost += 0.2
+                if product.skin_tones == profile_dict.get('skin_tone'):
+                    boost += 0.2
+                if product.location_tags == profile_dict.get('location_tag'):
+                    boost += 0.1
+                if product.occasion_tags == profile_dict.get('occasion_tag'):
+                    boost += 0.2
+                
+                final_score = similarity + boost
+                match_reasons = get_match_reasons(product, profile_dict, keywords);
+
+                # Get product images
+                product_images = []
+                for img in product.product_images.all():
+                    product_images.append({
+                        'url': img.image.url if img.image else '',
+                        'alt': product.product_name
+                    })
+
+
+                scored_products.append({
+                    'name': product.product_name,
+                    'description': product.product_description,
+                    'price': float(product.price),
+                    'brand': product.brand,
+                    'body_shape': product.body_shapes,
+                    'clothing_type': product.clothing_types,
+                    'skin_tone': product.skin_tones,
+                    'location_tag': product.location_tags,
+                    'occasion_tag': product.occasion_tags,
+                    'seasonal_tag': product.seasonal_tags,
+                    'similarity': final_score,
+                    'match_reasons': match_reasons,
+                    'images': product_images,  # Add images to the response
+                    'slug': product.slug,  # Add slug for product detail links
+                })
+
+            # print(scored_products);
+            
+            # Sort by similarity and get top 5
+            scored_products.sort(key=lambda x: x['similarity'], reverse=True)
+            top_recommendations = scored_products[:6]
+            
+            return JsonResponse({
+                'success': True,
+                'recommendations': top_recommendations,
+                'user_cluster': cluster,
+                'keywords': keywords,
+            })
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)

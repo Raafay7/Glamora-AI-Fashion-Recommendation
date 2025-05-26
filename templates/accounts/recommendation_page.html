@@ -1,0 +1,309 @@
+{% extends "base/base.html" %} 
+{% block title %}Recommendations{% endblock title %}
+{% load static %}{% block start %}
+
+    <style>
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+     <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">AI Fashion Stylist</h1>
+            <p class="text-gray-600">Personalized clothing recommendations powered by machine learning</p>
+        </div>
+
+        {% if not has_preferences %}
+        <!-- No Preferences Message -->
+        <div class="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg text-center">
+            <div class="mb-6">
+                <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Complete Your Style Profile First</h2>
+            <p class="text-gray-600 mb-6">
+                To get personalized recommendations, please complete your style preferences first.
+            </p>
+            <a href="{% url 'style-quiz' %}" 
+               class="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-md font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200">
+                Complete Style Profile
+            </a>
+        </div>
+        {% else %}
+        <!-- Main Recommendation Interface -->
+        <div class="max-w-6xl mx-auto">
+            <!-- Search Input Section -->
+            <div class="max-w-2xl mx-auto mb-8">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">What are you looking for?</h2>
+                    <div class="space-y-4">
+                        <textarea
+                            id="userPrompt"
+                            class="w-full p-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-32 resize-none"
+                            placeholder="Describe what you're looking for... e.g., 'I need a casual summer shirt for outdoor activities' or 'Looking for formal wear for a wedding'"
+                        ></textarea>
+                        <button
+                            id="getRecommendations"
+                            class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-md font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Get Personalized Recommendations
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="hidden text-center py-12">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p class="text-gray-600">Finding your perfect matches...</p>
+            </div>
+
+            <!-- Recommendations Section -->
+            <div id="recommendationsSection" class="hidden">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Your Personalized Recommendations</h2>
+                    <p id="clusterInfo" class="text-gray-600"></p>
+                </div>
+                
+                <div id="recommendationsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Recommendations will be inserted here -->
+                </div>
+                
+                <div class="text-center mt-8">
+                    <button
+                        id="newSearch"
+                        class="bg-gray-600 text-white px-6 py-3 rounded-md hover:bg-gray-700 transition-colors"
+                    >
+                        Start New Search
+                    </button>
+                </div>
+            </div>
+
+            <!-- No Results State -->
+            <div id="noResultsState" class="hidden text-center py-12">
+                <div class="mb-6">
+                    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.595 0-5.067.48-7.265 1.291" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">No Recommendations Found</h3>
+                <p class="text-gray-600 mb-4">Try adjusting your search terms or preferences.</p>
+                <button
+                    id="tryAgain"
+                    class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors"
+                >
+                    Try Different Search
+                </button>
+            </div>
+
+            <!-- Current Preferences Display -->
+            <div class="max-w-2xl mx-auto mt-8 bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Your Current Style Profile</h3>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="font-medium text-gray-700">Body Shape:</span>
+                        <span class="text-gray-600">{{ user_preferences.body_shape|default:"Not specified" }}</span>
+                    </div>
+                    <div>
+                        <span class="font-medium text-gray-700">Style:</span>
+                        <span class="text-gray-600">{{ user_preferences.clothing_types|default:"Not specified" }}</span>
+                    </div>
+                    <div>
+                        <span class="font-medium text-gray-700">Skin Tone:</span>
+                        <span class="text-gray-600">{{ user_preferences.skin_tone|default:"Not specified" }}</span>
+                    </div>
+                    <div>
+                        <span class="font-medium text-gray-700">Budget:</span>
+                        <span class="text-gray-600">{{ user_preferences.budget_range|default:"Not specified" }}</span>
+                    </div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <a href="{% url 'style_quiz' %}" 
+                       class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                        Update Your Preferences
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const userPrompt = document.getElementById('userPrompt');
+            const getRecommendationsBtn = document.getElementById('getRecommendations');
+            const loadingState = document.getElementById('loadingState');
+            const recommendationsSection = document.getElementById('recommendationsSection');
+            const noResultsState = document.getElementById('noResultsState');
+            const recommendationsList = document.getElementById('recommendationsList');
+            const clusterInfo = document.getElementById('clusterInfo');
+            const newSearchBtn = document.getElementById('newSearch');
+            const tryAgainBtn = document.getElementById('tryAgain');
+
+            // Hide all states initially
+            function hideAllStates() {
+                loadingState.classList.add('hidden');
+                recommendationsSection.classList.add('hidden');
+                noResultsState.classList.add('hidden');
+            }
+
+            // Enable/disable button based on input
+            userPrompt.addEventListener('input', function() {
+                getRecommendationsBtn.disabled = !this.value.trim();
+            });
+
+            // Get recommendations
+            getRecommendationsBtn.addEventListener('click', async function() {
+                const prompt = userPrompt.value.trim();
+                if (!prompt) return;
+
+                hideAllStates();
+                loadingState.classList.remove('hidden');
+                getRecommendationsBtn.disabled = true;
+
+                function getCookie(name) {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            // Does this cookie string begin with the name we want?
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                }
+
+
+                try {
+                    const response = await fetch('{% url "generate_recommendations" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ prompt: prompt })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.recommendations.length > 0) {
+                        displayRecommendations(data.recommendations, data.user_cluster);
+                    } else {
+                        hideAllStates();
+                        noResultsState.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    hideAllStates();
+                    noResultsState.classList.remove('hidden');
+                } finally {
+                    getRecommendationsBtn.disabled = false;
+                }
+            });
+
+            function displayRecommendations(recommendations, cluster) {
+                hideAllStates();
+                
+                clusterInfo.textContent = `Based on your style profile (Cluster ${cluster}) and search preferences`;
+    
+                recommendationsList.innerHTML = recommendations.map((product, index) => `
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+                        <div class="p-6">
+                            <div class="flex justify-between items-start mb-3">
+                                <span class="bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs px-2 py-1 rounded-full">
+                                    #${index + 1} Match
+                                </span>
+                                <span class="text-lg font-bold text-green-600">
+                                    PKR ${product.price.toLocaleString()}
+                                </span>
+                            </div>
+                            
+                            <h3 class="text-lg font-semibold text-gray-800 mb-2 line-clamp-2">
+                                ${product.name}
+                            </h3>
+                            
+                            <div class="space-y-2 mb-4">
+                                <div class="flex flex-wrap gap-1">
+                                    ${product.brand ? `<span class="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded">${product.brand}</span>` : ''}
+                                    ${product.body_shape ? `<span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">${product.body_shape}</span>` : ''}
+                                    ${product.clothing_type ? `<span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">${product.clothing_type}</span>` : ''}
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <h4 class="text-sm font-medium text-gray-700">Why this matches you:</h4>
+                                <ul class="text-sm text-gray-600 space-y-1">
+                                    ${product.match_reasons.map(reason => `
+                                        <li class="flex items-start">
+                                            <span class="text-green-500 mr-2">•</span>
+                                            ${reason}
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                            
+                            <div class="mt-4 pt-4 border-t border-gray-100">
+                                <div class="flex justify-between items-center text-sm text-gray-500">
+                                    <span>Similarity Score</span>
+                                    <span class="font-medium">
+                                        ${(product.similarity * 100).toFixed(1)}%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');               
+                recommendationsSection.classList.remove('hidden');}
+            
+            function resetSearch() {
+                userPrompt.value = '';
+                getRecommendationsBtn.disabled = true;
+                hideAllStates();
+            }
+
+            newSearchBtn.addEventListener('click', resetSearch);
+            tryAgainBtn.addEventListener('click', function() {
+                hideAllStates();
+            });
+
+            // Enable Enter key to submit
+            userPrompt.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (this.value.trim() && !getRecommendationsBtn.disabled) {
+                        getRecommendationsBtn.click();
+                    }
+                }
+            });
+
+            // Initial button state
+            getRecommendationsBtn.disabled = true;
+        });
+    </script>
+
+
+{% endblock %}
