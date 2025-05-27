@@ -113,11 +113,19 @@ def activate_email_account(request, email_token):
 
 @login_required
 def add_to_cart(request, uid):
+    
+    SIZE_MAP = {
+    'S': 'Small',
+    'M': 'Medium',
+    'L': 'Large'
+    }
+
     try:
         variant = request.GET.get('size')
         if not variant:
-            messages.warning(request, 'Please select a size variant!')
-            return redirect(request.META.get('HTTP_REFERER'))
+            user_profile = request.user.profile
+            variant = user_profile.clothing_size
+            variant = SIZE_MAP.get(variant.upper(), variant)
 
         product = get_object_or_404(Product, uid=uid)
         cart, _ = Cart.objects.get_or_create(user=request.user, is_paid=False)
@@ -795,7 +803,7 @@ def get_match_reasons(product, profile_dict, keywords):
         if keyword in product_text:
             reasons.append(f'Matches your search for "{keyword}"')
 
-    return reasons  # Limit to 3 reasons
+    return reasons[:3]  # Limit to 3 reasons
 
 
 @login_required

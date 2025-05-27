@@ -141,10 +141,20 @@ def delete_review(request, slug, review_uid):
 # Add a product to Wishlist
 @login_required
 def add_to_wishlist(request, uid):
+
+        
+    SIZE_MAP = {
+    'S': 'Small',
+    'M': 'Medium',
+    'L': 'Large'
+    }
+
     variant = request.GET.get('size')
+    
     if not variant:
-        messages.warning(request, 'Please select a size variant before adding to the wishlist!')
-        return redirect(request.META.get('HTTP_REFERER'))
+        user_profile = request.user.profile
+        variant = user_profile.clothing_size
+        variant = SIZE_MAP.get(variant.upper(), variant)
 
     product = get_object_or_404(Product, uid=uid)
     size_variant = get_object_or_404(SizeVariant, size_name=variant)
