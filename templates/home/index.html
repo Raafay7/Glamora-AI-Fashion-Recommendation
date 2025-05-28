@@ -154,7 +154,7 @@
     <ul class="pagination justify-content-center mb-4">
       {% if products.has_previous %}
       <li class="page-item">
-        <a class="page-link" href="?page={{ products.previous_page_number }}" aria-label="Previous">
+        <a class="page-link" href="?page={{ products.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}" aria-label="Previous">
           <span aria-hidden="true">&laquo; Previous</span>
         </a>
       </li>
@@ -166,13 +166,13 @@
 
       {% for num in products.paginator.page_range %}
       <li class="page-item {% if products.number == num %}active{% endif %}">
-        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+        <a class="page-link" href="?page={{ num }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}">{{ num }}</a>
       </li>
       {% endfor %}
 
       {% if products.has_next %}
       <li class="page-item">
-        <a class="page-link" href="?page={{ products.next_page_number }}" aria-label="Next">
+        <a class="page-link" href="?page={{ products.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}" aria-label="Next">
           <span aria-hidden="true">Next &raquo;</span>
         </a>
       </li>
