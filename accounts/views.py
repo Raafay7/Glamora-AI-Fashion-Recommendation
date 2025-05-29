@@ -3,6 +3,7 @@ import json
 import uuid
 import math
 import stripe
+import random
 from io import BytesIO
 from xhtml2pdf import pisa
 from django.views import View
@@ -626,6 +627,80 @@ class RecommendationEngine:
         }
     }
 
+    # Define 10 diverse clusters
+    CLUSTER_DEFINITIONS = {
+        0: {
+            'name': 'Professional Executive',
+            'preferences': ['formal', 'structured', 'office', 'business', 'elegant'],
+            'occasions': ['Interview', 'Work', 'Formal Event'],
+            'colors': ['navy', 'black', 'grey', 'white', 'burgundy'],
+            'styles': ['blazer', 'suit', 'formal shirt', 'trouser']
+        },
+        1: {
+            'name': 'Casual Weekend',
+            'preferences': ['casual', 'comfortable', 'relaxed', 'everyday'],
+            'occasions': ['Casual Outing', 'Home'],
+            'colors': ['denim', 'white', 'grey', 'beige', 'pastels'],
+            'styles': ['jeans', 't-shirt', 'casual dress', 'sneakers']
+        },
+        2: {
+            'name': 'Social Butterfly',
+            'preferences': ['social', 'trendy', 'fashionable', 'stylish'],
+            'occasions': ['Party', 'Date Night', 'Mall'],
+            'colors': ['bright', 'bold', 'trendy colors'],
+            'styles': ['dress', 'heels', 'accessories', 'statement pieces']
+        },
+        3: {
+            'name': 'Comfort Seeker',
+            'preferences': ['comfort', 'loose', 'breathable', 'soft'],
+            'occasions': ['Home', 'Casual Outing'],
+            'colors': ['neutral', 'earth tones', 'soft colors'],
+            'styles': ['loose tops', 'comfortable pants', 'soft fabrics']
+        },
+        4: {
+            'name': 'Seasonal Fashionista',
+            'preferences': ['seasonal', 'weather-appropriate', 'trendy'],
+            'occasions': ['varies by season'],
+            'colors': ['seasonal colors'],
+            'styles': ['seasonal appropriate', 'layered', 'weather-specific']
+        },
+        5: {
+            'name': 'Traditional Elegance',
+            'preferences': ['traditional', 'cultural', 'elegant', 'classic'],
+            'occasions': ['Wedding', 'Festive', 'Cultural Events'],
+            'colors': ['gold', 'red', 'maroon', 'traditional colors'],
+            'styles': ['saree', 'kurta', 'traditional wear', 'ethnic']
+        },
+        6: {
+            'name': 'Outdoor Adventurer',
+            'preferences': ['outdoor', 'active', 'practical', 'durable'],
+            'occasions': ['Outdoor', 'Garden', 'Beach'],
+            'colors': ['earth tones', 'practical colors'],
+            'styles': ['practical wear', 'weather-resistant', 'comfortable']
+        },
+        7: {
+            'name': 'Romantic Dreamer',
+            'preferences': ['romantic', 'feminine', 'soft', 'delicate'],
+            'occasions': ['Date Night', 'Dinner', 'Special occasions'],
+            'colors': ['pastels', 'soft pinks', 'romantic colors'],
+            'styles': ['flowing dresses', 'soft fabrics', 'feminine cuts']
+        },
+        8: {
+            'name': 'Urban Chic',
+            'preferences': ['modern', 'urban', 'edgy', 'contemporary'],
+            'occasions': ['University', 'Mall', 'Trendy venues'],
+            'colors': ['black', 'white', 'bold accents'],
+            'styles': ['modern cuts', 'sleek designs', 'urban fashion']
+        },
+        9: {
+            'name': 'Versatile Minimalist',
+            'preferences': ['versatile', 'minimal', 'classic', 'timeless'],
+            'occasions': ['Multiple occasions', 'Work', 'Casual'],
+            'colors': ['neutral palette', 'classic colors'],
+            'styles': ['capsule wardrobe', 'mix and match', 'timeless pieces']
+        }
+    }
+
     @staticmethod
     def encode_user_profile(profile_dict):
         """One-hot encode user profile"""
@@ -649,7 +724,7 @@ class RecommendationEngine:
 
     @staticmethod
     def extract_advanced_keywords(prompt):
-        """Advanced keyword extraction from user prompt"""
+        """Advanced keyword extraction from user prompt with enhanced context understanding"""
         text = prompt.lower()
         extracted_data = {
             'occasion_tag': None,
@@ -657,91 +732,90 @@ class RecommendationEngine:
             'seasonal_tag': None,
             'keywords': [],
             'colors': [],
-            'style_preferences': []
+            'style_preferences': [],
+            'mood_keywords': [],
+            'fabric_preferences': [],
+            'fit_preferences': []
         }
         
-        # Enhanced keyword maps with synonyms and variations
+        # Enhanced keyword maps with more synonyms and context
         keyword_maps = {
             'occasions': {
-                'dinner': ['dinner', 'dining', 'restaurant', 'meal', 'eating out'],
-                'wedding': ['wedding', 'marriage', 'ceremony', 'reception', 'bride', 'groom'],
-                'date night': ['date', 'romantic', 'dating', 'night out', 'special evening'],
-                'formal event': ['formal', 'gala', 'black tie', 'elegant', 'sophisticated'],
-                'interview': ['interview', 'job', 'professional meeting', 'work meeting'],
-                'party': ['party', 'celebration', 'festive', 'birthday', 'anniversary'],
-                'work': ['work', 'office', 'professional', 'business', 'corporate'],
-                'casual outing': ['casual', 'hangout', 'friends', 'relaxed', 'informal']
+                'dinner': ['dinner', 'dining', 'restaurant', 'meal', 'eating out', 'fine dining', 'lunch'],
+                'wedding': ['wedding', 'marriage', 'ceremony', 'reception', 'bride', 'groom', 'bridal'],
+                'date night': ['date', 'romantic', 'dating', 'night out', 'special evening', 'romance'],
+                'formal event': ['formal', 'gala', 'black tie', 'elegant', 'sophisticated', 'ceremony'],
+                'interview': ['interview', 'job', 'professional meeting', 'work meeting', 'career'],
+                'party': ['party', 'celebration', 'festive', 'birthday', 'anniversary', 'bash', 'gathering'],
+                'work': ['work', 'office', 'professional', 'business', 'corporate', 'workplace'],
+                'casual outing': ['casual', 'hangout', 'friends', 'relaxed', 'informal', 'weekend', 'chill']
             },
             'locations': {
-                'outdoor': ['outdoor', 'outside', 'park', 'garden', 'picnic', 'nature'],
-                'home': ['home', 'house', 'indoor', 'inside', 'staying in'],
-                'office': ['office', 'workplace', 'work', 'corporate', 'business'],
-                'restaurant': ['restaurant', 'cafe', 'diner', 'eatery', 'dining'],
-                'university': ['university', 'college', 'campus', 'school', 'academic'],
-                'mall': ['mall', 'shopping', 'store', 'retail', 'market'],
-                'beach': ['beach', 'seaside', 'ocean', 'coastal', 'waterfront'],
-                'garden': ['garden', 'botanical', 'greenhouse', 'park', 'greenery']
+                'outdoor': ['outdoor', 'outside', 'park', 'garden', 'picnic', 'nature', 'fresh air'],
+                'home': ['home', 'house', 'indoor', 'inside', 'staying in', 'cozy', 'comfortable'],
+                'office': ['office', 'workplace', 'work', 'corporate', 'business', 'desk job'],
+                'restaurant': ['restaurant', 'cafe', 'diner', 'eatery', 'dining', 'bistro'],
+                'university': ['university', 'college', 'campus', 'school', 'academic', 'student'],
+                'mall': ['mall', 'shopping', 'store', 'retail', 'market', 'shopping center'],
+                'beach': ['beach', 'seaside', 'ocean', 'coastal', 'waterfront', 'sand', 'waves'],
+                'garden': ['garden', 'botanical', 'greenhouse', 'park', 'greenery', 'nature']
             },
             'seasons': {
-                'summer': ['summer', 'hot', 'sunny', 'beach', 'vacation', 'tropical'],
-                'winter': ['winter', 'cold', 'snow', 'cozy', 'warm', 'holiday'],
-                'spring': ['spring', 'fresh', 'bloom', 'mild', 'renewal'],
-                'fall': ['fall', 'autumn', 'cool', 'harvest', 'leaves'],
-                'festive': ['festive', 'celebration', 'holiday', 'special', 'traditional'],
-                'monsoon': ['monsoon', 'rainy', 'wet', 'humid', 'rain']
+                'summer': ['summer', 'hot', 'sunny', 'beach', 'vacation', 'tropical', 'warm weather'],
+                'winter': ['winter', 'cold', 'snow', 'cozy', 'warm', 'holiday', 'chilly'],
+                'spring': ['spring', 'fresh', 'bloom', 'mild', 'renewal', 'breezy'],
+                'fall': ['fall', 'autumn', 'cool', 'harvest', 'leaves', 'crisp'],
+                'festive': ['festive', 'celebration', 'holiday', 'special', 'traditional', 'cultural'],
+                'monsoon': ['monsoon', 'rainy', 'wet', 'humid', 'rain', 'drizzle']
             },
             'styles': ['casual', 'formal', 'social', 'workwear', 'loose', 'fitted', 'embroidered', 
-                      'elegant', 'trendy', 'classic', 'modern', 'vintage', 'bohemian', 'chic'],
+                      'elegant', 'trendy', 'classic', 'modern', 'vintage', 'bohemian', 'chic',
+                      'minimalist', 'edgy', 'romantic', 'sporty', 'preppy'],
             'clothing': ['shirt', 'pants', 'dress', 'suit', 'trouser', 'abaya', 'saree', 'frock',
-                        'blouse', 'skirt', 'jacket', 'kurta', 'jeans', 'top', 'tunic'],
+                        'blouse', 'skirt', 'jacket', 'kurta', 'jeans', 'top', 'tunic', 'blazer',
+                        'cardigan', 'sweater', 'shorts', 'palazzo', 'jumpsuit'],
             'colors': ['black', 'blue', 'green', 'white', 'grey', 'cream', 'lilac', 'red', 'pink',
-                      'yellow', 'purple', 'orange', 'brown', 'navy', 'maroon', 'gold', 'silver']
+                      'yellow', 'purple', 'orange', 'brown', 'navy', 'maroon', 'gold', 'silver',
+                      'turquoise', 'coral', 'burgundy', 'emerald', 'crimson'],
+            'moods': ['confident', 'comfortable', 'stylish', 'professional', 'relaxed', 'bold',
+                     'subtle', 'eye-catching', 'understated', 'glamorous', 'sophisticated'],
+            'fabrics': ['cotton', 'silk', 'linen', 'wool', 'chiffon', 'satin', 'denim', 'leather',
+                       'velvet', 'polyester', 'rayon', 'georgette'],
+            'fits': ['loose', 'tight', 'fitted', 'oversized', 'slim', 'regular', 'flowy', 'structured']
         }
         
-        # Extract occasions
-        for occasion, synonyms in keyword_maps['occasions'].items():
-            for synonym in synonyms:
-                if synonym in text:
-                    extracted_data['occasion_tag'] = occasion.title().replace(' ', ' ')
-                    extracted_data['keywords'].append(synonym)
-                    break
-            if extracted_data['occasion_tag']:
-                break
+        # Extract all categories with higher keyword scoring
+        for category, subcategories in keyword_maps.items():
+            if isinstance(subcategories, dict):
+                for main_key, synonyms in subcategories.items():
+                    for synonym in synonyms:
+                        if synonym in text:
+                            if category == 'occasions':
+                                extracted_data['occasion_tag'] = main_key.title().replace(' ', ' ')
+                            elif category == 'locations':
+                                extracted_data['location_tag'] = main_key.title()
+                            elif category == 'seasons':
+                                extracted_data['seasonal_tag'] = main_key.title()
+                            extracted_data['keywords'].append(synonym)
+                            break
+            else:
+                for keyword in subcategories:
+                    if keyword in text:
+                        extracted_data['keywords'].append(keyword)
+                        if category == 'colors':
+                            extracted_data['colors'].append(keyword)
+                        elif category == 'styles':
+                            extracted_data['style_preferences'].append(keyword)
+                        elif category == 'moods':
+                            extracted_data['mood_keywords'].append(keyword)
+                        elif category == 'fabrics':
+                            extracted_data['fabric_preferences'].append(keyword)
+                        elif category == 'fits':
+                            extracted_data['fit_preferences'].append(keyword)
         
-        # Extract locations
-        for location, synonyms in keyword_maps['locations'].items():
-            for synonym in synonyms:
-                if synonym in text:
-                    extracted_data['location_tag'] = location.title()
-                    extracted_data['keywords'].append(synonym)
-                    break
-            if extracted_data['location_tag']:
-                break
-        
-        # Extract seasons
-        for season, synonyms in keyword_maps['seasons'].items():
-            for synonym in synonyms:
-                if synonym in text:
-                    extracted_data['seasonal_tag'] = season.title()
-                    extracted_data['keywords'].append(synonym)
-                    break
-            if extracted_data['seasonal_tag']:
-                break
-        
-        # Extract other keywords
-        for category_keywords in [keyword_maps['styles'], keyword_maps['clothing'], keyword_maps['colors']]:
-            for keyword in category_keywords:
-                if keyword in text:
-                    extracted_data['keywords'].append(keyword)
-                    if keyword in keyword_maps['colors']:
-                        extracted_data['colors'].append(keyword)
-                    elif keyword in keyword_maps['styles']:
-                        extracted_data['style_preferences'].append(keyword)
-        
-        # Remove duplicates
-        extracted_data['keywords'] = list(set(extracted_data['keywords']))
-        extracted_data['colors'] = list(set(extracted_data['colors']))
-        extracted_data['style_preferences'] = list(set(extracted_data['style_preferences']))
+        # Remove duplicates and sort by relevance
+        for key in ['keywords', 'colors', 'style_preferences', 'mood_keywords', 'fabric_preferences', 'fit_preferences']:
+            extracted_data[key] = list(set(extracted_data[key]))
         
         return extracted_data
 
@@ -755,63 +829,75 @@ class RecommendationEngine:
         })
 
     @staticmethod
-    def assign_to_cluster(encoded_profile):
-        """Advanced cluster assignment based on preferences"""
-        primary_prefs = []
+    def assign_to_cluster(encoded_profile, extracted_data, user_prompt):
+        """Enhanced cluster assignment based on preferences and prompt context"""
+        cluster_scores = {}
         
-        # Analyze clothing type preferences
-        if (encoded_profile.get('clothing_type_Social', 0) or 
-            encoded_profile.get('clothing_type_Workwear', 0)):
-            primary_prefs.append('formal')
+        # Initialize all clusters with base score
+        for cluster_id in range(10):
+            cluster_scores[cluster_id] = 0
         
-        if encoded_profile.get('clothing_type_Casual', 0):
-            primary_prefs.append('casual')
-
-        if encoded_profile.get('clothing_type_Maternity', 0):
-            primary_prefs.append('comfort')
+        # Score based on extracted keywords and preferences
+        prompt_lower = user_prompt.lower()
         
-        # Analyze body shape preferences
-        if (encoded_profile.get('body_shape_Triangle', 0) or 
-            encoded_profile.get('body_shape_Rectangle', 0)):
-            primary_prefs.append('structured')
+        for cluster_id, cluster_info in RecommendationEngine.CLUSTER_DEFINITIONS.items():
+            score = 0
+            
+            # Check preference matches in prompt
+            for pref in cluster_info['preferences']:
+                if pref in prompt_lower:
+                    score += 2
+            
+            # Check occasion matches
+            for occasion in cluster_info['occasions']:
+                if extracted_data.get('occasion_tag') == occasion:
+                    score += 3
+                elif occasion.lower() in prompt_lower:
+                    score += 1
+            
+            # Check style preferences
+            for style in extracted_data.get('style_preferences', []):
+                if style in cluster_info['preferences']:
+                    score += 2
+            
+            # Check mood alignment
+            for mood in extracted_data.get('mood_keywords', []):
+                if mood in cluster_info['preferences']:
+                    score += 1.5
+            
+            # Profile-based scoring
+            if encoded_profile.get('clothing_type_Workwear', 0) and cluster_id == 0:
+                score += 3
+            elif encoded_profile.get('clothing_type_Casual', 0) and cluster_id == 1:
+                score += 3
+            elif encoded_profile.get('clothing_type_Social', 0) and cluster_id == 2:
+                score += 3
+            elif encoded_profile.get('clothing_type_Maternity', 0) and cluster_id == 3:
+                score += 3
+            
+            # Seasonal alignment
+            if extracted_data.get('seasonal_tag'):
+                if cluster_id == 4:  # Seasonal Fashionista
+                    score += 2
+                elif extracted_data.get('seasonal_tag') == 'Festive' and cluster_id == 5:
+                    score += 3
+            
+            # Location-based scoring
+            if extracted_data.get('location_tag') == 'Outdoor' and cluster_id == 6:
+                score += 3
+            elif extracted_data.get('location_tag') in ['Restaurant', 'Dinner'] and cluster_id == 7:
+                score += 2
+            elif extracted_data.get('location_tag') in ['University', 'Mall'] and cluster_id == 8:
+                score += 2
+            
+            cluster_scores[cluster_id] = score
         
-        if (encoded_profile.get('body_shape_Hourglass', 0) or 
-            encoded_profile.get('body_shape_Oval', 0)):
-            primary_prefs.append('fitted')
-
-            # Add season-based preferences
-        if encoded_profile.get('seasonal_tag_Summer', 0):
-            primary_prefs.append('light')
-        if encoded_profile.get('seasonal_tag_Winter', 0):
-            primary_prefs.append('layered')
+        # Add randomness to prevent always getting the same cluster
+        for cluster_id in cluster_scores:
+            cluster_scores[cluster_id] += random.uniform(0, 0.5)
         
-        # Analyze occasion preferences
-        formal_occasions = ['Dinner', 'Wedding', 'Formal_Event', 'Interview']
-        casual_occasions = ['Party', 'Casual_Outing', 'Date_Night']
-        
-        for occasion in formal_occasions:
-            if encoded_profile.get(f'occasion_tag_{occasion}', 0):
-                primary_prefs.append('formal')
-                break
-        
-        for occasion in casual_occasions:
-            if encoded_profile.get(f'occasion_tag_{occasion}', 0):
-                primary_prefs.append('casual')
-                break
-        
-        # Enhanced cluster assignment logic
-        if 'formal' in primary_prefs and 'structured' in primary_prefs:
-            return 0  # Formal Structured
-        elif 'formal' in primary_prefs and 'fitted' in primary_prefs:
-            return 1  # Formal Fitted
-        elif 'casual' in primary_prefs and 'structured' in primary_prefs:
-            return 2  # Casual Structured
-        elif 'casual' in primary_prefs and 'fitted' in primary_prefs:
-            return 3  # Casual Fitted
-        elif 'comfort' in primary_prefs:
-            return 4  # Comfortable/Maternity
-        else:
-            return 5  # General/Mixed preferences
+        # Return cluster with highest score
+        return max(cluster_scores.items(), key=lambda x: x[1])[0]
 
     @staticmethod
     def cosine_similarity(vec_a, vec_b):
@@ -829,8 +915,8 @@ class RecommendationEngine:
         return dot_product / (magnitude_a * magnitude_b)
 
     @staticmethod
-    def create_product_vector(product, keywords, extracted_data):
-        """Create enhanced vector representation of product"""
+    def create_product_vector(product, keywords, extracted_data, cluster_id):
+        """Create enhanced vector representation of product with cluster-specific weighting"""
         vector = {}
         
         # Product attributes mapping
@@ -848,42 +934,82 @@ class RecommendationEngine:
                 key = f"{attr}_{value.replace(' ', '_')}"
                 vector[key] = 1
         
-        # Add keyword matches with different weights
+        # Enhanced keyword matching with different weights
         product_text = f"{product.product_name} {product.product_description} {product.brand}".lower()
         
-        # Higher weight for exact matches
+        # Higher weight for keywords that match cluster preferences
+        cluster_info = RecommendationEngine.CLUSTER_DEFINITIONS.get(cluster_id, {})
+        cluster_keywords = cluster_info.get('preferences', [])
+        
         for keyword in keywords:
             if keyword in product_text:
-                vector[f"keyword_{keyword}"] = 1
+                # Higher weight if keyword aligns with cluster
+                weight = 2.0 if keyword in cluster_keywords else 1.0
+                vector[f"keyword_{keyword}"] = weight
         
-        # Color matching
+        # Style preference matching
+        for style in extracted_data.get('style_preferences', []):
+            if style in product_text:
+                vector[f"style_{style}"] = 1.5
+        
+        # Mood keyword matching
+        for mood in extracted_data.get('mood_keywords', []):
+            if mood in product_text:
+                vector[f"mood_{mood}"] = 1.2
+        
+        # Fabric preference matching
+        for fabric in extracted_data.get('fabric_preferences', []):
+            if fabric in product_text:
+                vector[f"fabric_{fabric}"] = 1.3
+        
+        # Color matching with enhanced logic
         if hasattr(product, 'color') and product.color:
             product_color = product.color.lower()
             for color in extracted_data.get('colors', []):
                 if color in product_color:
-                    vector[f"color_{color}"] = 1
-
+                    vector[f"color_{color}"] = 2.0  # High weight for user-specified colors
+        
         return vector
 
     @staticmethod
-    def create_user_vector(profile_dict, keywords, extracted_data):
-        """Create enhanced user vector from profile and extracted data"""
+    def create_user_vector(profile_dict, keywords, extracted_data, cluster_id):
+        """Create enhanced user vector from profile, extracted data, and cluster"""
         encoded = RecommendationEngine.encode_user_profile(profile_dict)
         
-        # Add keyword preferences
+        # Get cluster-specific preferences
+        cluster_info = RecommendationEngine.CLUSTER_DEFINITIONS.get(cluster_id, {})
+        
+        # Add keyword preferences with cluster-aware weighting
         for keyword in keywords:
-            encoded[f"keyword_{keyword}"] = 1
+            weight = 2.0 if keyword in cluster_info.get('preferences', []) else 1.0
+            encoded[f"keyword_{keyword}"] = weight
+        
+        # Add style preferences
+        for style in extracted_data.get('style_preferences', []):
+            encoded[f"style_{style}"] = 1.5
+        
+        # Add mood preferences
+        for mood in extracted_data.get('mood_keywords', []):
+            encoded[f"mood_{mood}"] = 1.2
+        
+        # Add fabric preferences
+        for fabric in extracted_data.get('fabric_preferences', []):
+            encoded[f"fabric_{fabric}"] = 1.3
         
         # Add color preferences based on skin tone
         skin_tone = profile_dict.get('skin_tone', 'Wheatish')
         recommended_colors = RecommendationEngine.get_recommended_colors(skin_tone)
         
         for color in recommended_colors['best']:
-            encoded[f"recommended_color_{color.replace(' ', '_')}"] = 1
+            encoded[f"recommended_color_{color.replace(' ', '_')}"] = 1.2
         
-        # Add extracted preferences with higher weights
+        # Higher weight for user-specified colors
         for color in extracted_data.get('colors', []):
-            encoded[f"color_{color}"] = 1.5  # Higher weight for user-specified colors
+            encoded[f"color_{color}"] = 2.0
+        
+        # Add cluster-specific preferences
+        for pref in cluster_info.get('preferences', []):
+            encoded[f"cluster_pref_{pref}"] = 1.5
         
         return encoded
 
@@ -904,10 +1030,10 @@ class RecommendationEngine:
         return products.filter(price__gte=min_price, price__lt=max_price)
 
     @staticmethod
-    def get_match_reasons(product, profile_dict, extracted_data, keywords):
+    def get_match_reasons(product, profile_dict, extracted_data, keywords, cluster_id):
         """Get detailed reasons why product matches user preferences"""
         
-        # Enhanced defaults
+        # Dynamic defaults based on extracted data
         defaults = {
             'body_shape': 'Hourglass',
             'clothing_type': 'Workwear',
@@ -926,12 +1052,15 @@ class RecommendationEngine:
             return str(val1).strip().lower() == str(val2).strip().lower()
 
         reasons = []
+        cluster_info = RecommendationEngine.CLUSTER_DEFINITIONS.get(cluster_id, {})
 
-        # Body shape matching
+        # Cluster-specific matching
+        reasons.append(f"Matches your {cluster_info.get('name', 'style')} preference")
+
+        # Enhanced matching logic
         if safe_match(product.body_shapes, get_value('body_shape')):
             reasons.append(f"Perfect fit for {get_value('body_shape')} body shape")
 
-        # Clothing type matching
         if safe_match(product.clothing_types, get_value('clothing_type')):
             reasons.append(f"Matches your {get_value('clothing_type')} style preference")
 
@@ -940,39 +1069,71 @@ class RecommendationEngine:
             skin_tone = get_value('skin_tone')
             recommended_colors = RecommendationEngine.get_recommended_colors(skin_tone)
             reasons.append(f"Complements your {skin_tone} skin tone")
-            
-            # Check if product color matches recommended colors
-            if hasattr(product, 'color') and product.color:
-                product_color = product.color.lower()
-                for rec_color in recommended_colors['best']:
-                    if rec_color in product_color:
-                        reasons.append(f"Perfect color choice for your skin tone")
-                        break
 
-        # Occasion matching
-        if safe_match(product.occasion_tags, get_value('occasion_tag')):
-            reasons.append(f"Perfect for {get_value('occasion_tag')} occasions")
-
-        # Seasonal matching
-        if safe_match(product.seasonal_tags, get_value('seasonal_tag')):
-            reasons.append(f"Ideal for {get_value('seasonal_tag')} season")
-
-        # Location matching
-        if safe_match(product.location_tags, get_value('location_tag')):
-            reasons.append(f"Great for {get_value('location_tag')} settings")
-
-        # Keyword matching
+        # Enhanced keyword matching
         product_text = f"{product.product_name or ''} {product.product_description or ''}".lower()
-        for keyword in keywords:
+        
+        # Priority keywords from prompt
+        priority_keywords = extracted_data.get('style_preferences', []) + extracted_data.get('mood_keywords', [])
+        for keyword in priority_keywords:
+            if keyword in product_text:
+                reasons.append(f'Perfect match for your "{keyword}" style')
+                break
+
+        # Regular keyword matching
+        for keyword in keywords[:3]:  # Top 3 keywords
             if keyword in product_text:
                 reasons.append(f'Matches your search for "{keyword}"')
+                break
 
-        # Style preference matching
-        for style in extracted_data.get('style_preferences', []):
-            if style in product_text:
-                reasons.append(f'Matches your {style} style preference')
+        # Occasion/location matching
+        if safe_match(product.occasion_tags, get_value('occasion_tag')):
+            reasons.append(f"Perfect for {get_value('occasion_tag')} occasions")
+        elif safe_match(product.location_tags, get_value('location_tag')):
+            reasons.append(f"Great for {get_value('location_tag')} settings")
 
-        return reasons[:4]  # Limit to 4 reasons
+        return reasons[:4]  # Limit to 4 most relevant reasons
+
+    @staticmethod
+    def add_diversity_boost(scored_products, user_vector, cluster_id):
+        """Add diversity to recommendations to avoid repetitive results"""
+        if len(scored_products) <= 6:
+            return scored_products
+        
+        # Group by similar attributes to identify clusters
+        attribute_groups = {}
+        for i, product in enumerate(scored_products):
+            # Create a key based on major attributes
+            key = f"{product.get('clothing_type', '')}-{product.get('occasion_tag', '')}-{product.get('brand', '')}"
+            if key not in attribute_groups:
+                attribute_groups[key] = []
+            attribute_groups[key].append((i, product))
+        
+        # Select diverse products
+        diverse_products = []
+        used_groups = set()
+        
+        # First, add top product from each group
+        for group_key, products in attribute_groups.items():
+            if len(diverse_products) < 6:
+                # Sort by similarity within group
+                products.sort(key=lambda x: x[1]['similarity'], reverse=True)
+                diverse_products.append(products[0][1])
+                used_groups.add(group_key)
+        
+        # Fill remaining slots with highest similarity products not yet included
+        remaining_slots = 6 - len(diverse_products)
+        if remaining_slots > 0:
+            added_indices = {p.get('id', hash(str(p))) for p in diverse_products}
+            for product in scored_products:
+                if remaining_slots <= 0:
+                    break
+                product_id = product.get('id', hash(str(product)))
+                if product_id not in added_indices:
+                    diverse_products.append(product)
+                    remaining_slots -= 1
+        
+        return diverse_products[:6]
 
 
 @login_required
@@ -1012,22 +1173,24 @@ class GenerateRecommendationsView(View):
             engine = RecommendationEngine()
             extracted_data = engine.extract_advanced_keywords(user_prompt)
             
-            # Build enhanced profile dictionary
+            # Build enhanced profile dictionary with dynamic defaults
             profile_dict = {
                 'body_shape': user_prefs.body_shape,
                 'clothing_type': user_prefs.clothing_types,
                 'skin_tone': user_prefs.skin_tone,
                 'price_range': user_prefs.budget_range,
-                # Use extracted data or defaults
                 'occasion_tag': extracted_data.get('occasion_tag') or 'Dinner',
                 'location_tag': extracted_data.get('location_tag') or 'Outdoor',
                 'seasonal_tag': extracted_data.get('seasonal_tag') or 'Summer',
             }
             
-            # Generate recommendations
+            # Generate cluster assignment based on prompt and preferences
             keywords = extracted_data['keywords']
-            user_vector = engine.create_user_vector(profile_dict, keywords, extracted_data)
-            cluster = engine.assign_to_cluster(engine.encode_user_profile(profile_dict))
+            encoded_profile = engine.encode_user_profile(profile_dict)
+            cluster = engine.assign_to_cluster(encoded_profile, extracted_data, user_prompt)
+            
+            # Create user vector with cluster information
+            user_vector = engine.create_user_vector(profile_dict, keywords, extracted_data, cluster)
             
             # Get recommended colors for user's skin tone
             recommended_colors = engine.get_recommended_colors(profile_dict['skin_tone'])
@@ -1038,12 +1201,16 @@ class GenerateRecommendationsView(View):
 
             # Calculate similarities and score products
             scored_products = []
+            cluster_info = RecommendationEngine.CLUSTER_DEFINITIONS.get(cluster, {})
+            
             for product in filtered_products:
-                product_vector = engine.create_product_vector(product, keywords, extracted_data)
+                product_vector = engine.create_product_vector(product, keywords, extracted_data, cluster)
                 similarity = engine.cosine_similarity(user_vector, product_vector)
                 
-                # Enhanced boost calculation
+                # Enhanced boost calculation with cluster-specific logic
                 boost = 0
+                
+                # Basic attribute matching
                 if product.body_shapes == profile_dict.get('body_shape'):
                     boost += 0.3
                 if product.clothing_types == profile_dict.get('clothing_type'):
@@ -1057,22 +1224,60 @@ class GenerateRecommendationsView(View):
                 if product.seasonal_tags == profile_dict.get('seasonal_tag'):
                     boost += 0.15
                 
+                # Cluster-specific boost
+                product_text = f"{product.product_name} {product.product_description}".lower()
+                for cluster_pref in cluster_info.get('preferences', []):
+                    if cluster_pref in product_text:
+                        boost += 0.3
+                        break
+                
+                # Enhanced keyword matching with priority
+                priority_keywords = extracted_data.get('style_preferences', []) + extracted_data.get('mood_keywords', [])
+                
+                # Priority keyword boost (higher weight)
+                for keyword in priority_keywords:
+                    if keyword in product_text:
+                        boost += 0.4
+                
+                # Regular keyword boost
+                regular_keyword_matches = 0
+                for keyword in keywords:
+                    if keyword in product_text and keyword not in priority_keywords:
+                        regular_keyword_matches += 1
+                boost += regular_keyword_matches * 0.15
+                
                 # Color matching boost
                 if hasattr(product, 'color') and product.color:
                     product_color = product.color.lower()
-                    for rec_color in recommended_colors['best']:
-                        if rec_color in product_color:
-                            boost += 0.2
+                    # User-specified colors get highest boost
+                    for user_color in extracted_data.get('colors', []):
+                        if user_color in product_color:
+                            boost += 0.5
                             break
+                    else:
+                        # Recommended colors get moderate boost
+                        for rec_color in recommended_colors['best']:
+                            if rec_color in product_color:
+                                boost += 0.2
+                                break
                 
-                # Keyword matching boost
-                product_text = f"{product.product_name} {product.product_description}".lower()
-                keyword_matches = sum(1 for keyword in keywords if keyword in product_text)
-                boost += keyword_matches * 0.1
+                # Fabric preference boost
+                for fabric in extracted_data.get('fabric_preferences', []):
+                    if fabric in product_text:
+                        boost += 0.2
                 
-                final_score = similarity + boost
+                # Brand diversity boost (slight penalty for overused brands)
+                brand_penalty = 0
+                if hasattr(product, 'brand') and product.brand:
+                    # This would ideally track brand frequency in previous recommendations
+                    # For now, we'll add slight randomization
+                    brand_penalty = random.uniform(0, 0.1)
+                
+                final_score = similarity + boost - brand_penalty
+                
+                # Get match reasons
                 match_reasons = RecommendationEngine.get_match_reasons(
-                    product, profile_dict, extracted_data, keywords
+                    product, profile_dict, extracted_data, keywords, cluster
                 )
 
                 # Get product images
@@ -1099,22 +1304,71 @@ class GenerateRecommendationsView(View):
                     'match_reasons': match_reasons,
                     'images': product_images,
                     'slug': product.slug,
+                    'cluster_match': cluster,
                 })
             
-            # Sort by similarity and get top recommendations
+            # Sort by similarity score
             scored_products.sort(key=lambda x: x['similarity'], reverse=True)
-            top_recommendations = scored_products[:6]
+            
+            # Apply diversity boost to avoid repetitive recommendations
+            diverse_products = engine.add_diversity_boost(scored_products, user_vector, cluster)
+            
+            # If we still don't have enough diversity, add some random high-scoring products
+            if len(diverse_products) < 6 and len(scored_products) > 6:
+                used_ids = {p['id'] for p in diverse_products}
+                remaining_products = [p for p in scored_products if p['id'] not in used_ids]
+                
+                # Add products with different attributes
+                for product in remaining_products:
+                    if len(diverse_products) >= 6:
+                        break
+                    
+                    # Check if this product adds diversity
+                    is_diverse = True
+                    for existing in diverse_products:
+                        # If too similar to existing products, skip
+                        if (product['brand'] == existing['brand'] and 
+                            product['clothing_type'] == existing['clothing_type'] and
+                            product['occasion_tag'] == existing['occasion_tag']):
+                            is_diverse = False
+                            break
+                    
+                    if is_diverse:
+                        diverse_products.append(product)
+            
+            # Ensure we have exactly 6 recommendations
+            final_recommendations = diverse_products[:6]
+            
+            # Add some randomization to prevent identical results for similar prompts
+            if len(final_recommendations) == 6:
+                # Slightly shuffle the middle products (keep top 2 and bottom 1 stable)
+                if len(final_recommendations) > 3:
+                    middle_products = final_recommendations[2:5]
+                    random.shuffle(middle_products)
+                    final_recommendations = (final_recommendations[:2] + 
+                                           middle_products + 
+                                           final_recommendations[5:])
             
             return JsonResponse({
                 'success': True,
-                'recommendations': top_recommendations,
+                'recommendations': final_recommendations,
                 'user_cluster': cluster,
+                'cluster_name': cluster_info.get('name', 'Mixed Preferences'),
+                'cluster_description': f"Your style matches our {cluster_info.get('name', 'Mixed Preferences')} category",
                 'keywords': keywords,
                 'extracted_data': extracted_data,
                 'recommended_colors': recommended_colors,
-                'total_products_analyzed': len(scored_products)
+                'total_products_analyzed': len(scored_products),
+                'diversity_applied': len(diverse_products) != len(scored_products[:6]),
+                'prompt_analysis': {
+                    'primary_keywords': keywords[:5],
+                    'style_preferences': extracted_data.get('style_preferences', []),
+                    'mood_keywords': extracted_data.get('mood_keywords', []),
+                    'detected_occasion': extracted_data.get('occasion_tag'),
+                    'detected_location': extracted_data.get('location_tag'),
+                    'detected_season': extracted_data.get('seasonal_tag'),
+                }
             })
             
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
