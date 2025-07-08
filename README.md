@@ -1,5 +1,6 @@
 # Glamora
 
+GLAMORA, an AI-driven fashion recommender system designed to transform the online shopping experience via tailored recommendations and natural language interaction.   GLAMORA employs a hybrid methodology that fuses content-based and collaborative filtering techniques, augmented by Natural Language Processing (NLP) functionalities.
 This project is a full-fledged eCommerce website built using Django, a high-level Python web framework. It includes essential features such as user authentication, product browsing, cart management, checkout process, payment integration, and more. The website is designed to be robust, scalable, and user-friendly, providing a seamless shopping experience for customers.
 
 ## Table of Contents
@@ -36,8 +37,8 @@ To run this project locally, follow these steps:
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/atulguptag/Django-eCommerce-Website.git
-   cd Django-eCommerce-Website
+   git clone https://github.com/Raafay7/Glamora-AI-Fashion-Recommendation.git
+   cd Glamora-AI-Fashion-Recommendation
    ```
 
 2. **Create a virtual environment:**
@@ -62,7 +63,7 @@ To run this project locally, follow these steps:
 
 ### `Note: If you face any kind of issue while installing the packages or by running the above command, you can follow this step - `
 
-- First, run the below pip command into your terminal (make sure your virtual environment is activated, it should be something like that - `(venv) PS C:\Users\asus\Django-eCommerce-Website`)-
+- First, run the below pip command into your terminal (make sure your virtual environment is activated, it should be something like that - `(venv) PS C:\Users\asus\Glamora-AI-Fashion-Recommendation`)-
 
   ```bash
   pip install django python-decouple django-allauth django_countries django-crispy-forms crispy_bootstrap4 jwt
